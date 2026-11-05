@@ -99,8 +99,11 @@ model League {
   timezone                 String   @default("Africa/Addis_Ababa")
   setupState               String   @default("pending") @map("setup_state") // /setup wizard progress
   joinToken                String   @unique @map("join_token") // deep link for claiming a team
+  ownerUserId              Int      @map("owner_user_id") // whoever ran /setup; may not have claimed a team yet
+  seedFreePassMemberIds    Int[]    @default([]) @map("seed_free_pass_member_ids") // runner-up(s) of the gameweek before first_pot_gw
   createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  owner       User         @relation(fields: [ownerUserId], references: [id])
   members     Member[]
   gameweeks   Gameweek[]
   messageLogs MessageLog[]
@@ -115,7 +118,8 @@ model User {
   displayName String @map("display_name")
   language    String @default("en")
 
-  members Member[]
+  members      Member[]
+  ownedLeagues League[]
 
   @@map("users")
 }

@@ -38,9 +38,15 @@ importers:
 
   apps/bot:
     dependencies:
+      '@potbot/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@potbot/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@potbot/fpl':
+        specifier: workspace:*
+        version: link:../../packages/fpl
       fastify:
         specifier: 5.12.8
         version: 5.12.8

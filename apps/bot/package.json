@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@potbot/core": "workspace:*",
     "@potbot/db": "workspace:*",
+    "@potbot/fpl": "workspace:*",
     "fastify": "5.12.8",
     "grammy": "1.46.0",
     "pg-boss": "12.38.0"
