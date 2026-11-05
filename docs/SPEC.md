@@ -72,8 +72,8 @@ In a normal week the only human step is sending the pot to the winner; the bot s
 ```mermaid
 flowchart LR
     A["1. Window opens<br/>Who owes what is created<br/>Runner-up gets a free pass<br/>Pot size posted in group"]
-    B["2. Pay and get reminded<br/>Proof checked on Telebirr<br/>Reminders at 24h, 6h, 1h<br/>Prediction poll posted"]
-    C["3. FPL deadline<br/>Payment window closes<br/>Unpaid members called out<br/>Teams locked by FPL"]
+    B["2. Pay and get reminded<br/>Proof checked on Telebirr<br/>Reminders from 48h, more often near the deadline<br/>Prediction poll posted"]
+    C["3. FPL deadline<br/>Payment window closes<br/>Group told who is participating<br/>Teams locked by FPL"]
     D["4. Match days<br/>Live table on /table<br/>Captain pings, rate-limited<br/>Replies when mentioned"]
     E["5. Points go final<br/>Waits for bonus points<br/>and leagues updated<br/>plus a 1-hour grace period"]
     F["6. Settle and pay out<br/>Winner, runner-up, awards<br/>AI recap and roasts<br/>Coordinator sends the pot"]
@@ -132,7 +132,7 @@ The best jokes come from real FPL data about real friends, so the AI gets each w
 | Hit Man | Most points spent on transfer hits |
 | The Genius | Best differential pick that nobody else owned |
 
-**5. Reminders that get sassier.** 24 hours before the deadline the reminder is polite and private. At 6 hours it is cheeky and private. At 1 hour it goes public: "These 3 still haven't paid. The pot is waiting, gentlemen."
+**5. Reminders that get sassier.** Unpaid members are reminded in seven rounds, each both in the group with an @mention and by private message: once 2 days before the deadline (48h), twice with 1 day left (24h, 18h), and four times on deadline day (6h, 3h, 1h, 15m). The tone gets cheekier as the deadline nears: "These 3 still haven't paid. The pot is waiting, gentlemen." Members who have paid hear nothing. A member with no Telegram username is mentioned by a link to their account, and one who hasn't claimed a team is named by team. When the deadline passes, the group gets a message listing who is participating this gameweek.
 
 **6. Match-day pings, rate-limited.** "Kebede's captain just scored. Kebede is now 1st. Everyone else, pray." Allow at most a few per match day so the group isn't spammed.
 
@@ -297,7 +297,7 @@ Build in phases, and use each one with your group for a gameweek before starting
 
 - [ ] **Phase 0: skeleton.** pnpm monorepo (`apps/bot`, `apps/web`, `packages/core`, `packages/db`, `packages/fpl`, `packages/payments`, `packages/ai`), docker-compose with Postgres, `.env.example`, pg-boss, Prisma schema from the Data model section, `/start` replies.
 - [ ] **Phase 1: FPL import, results and leaderboard.** Typed FPL client with caching and retry; `/setup` with league import and season backfill; deep-link onboarding where members pick their team; `/table`; settle job after `event-status` plus 1-hour grace; unit tests for winner, tie and runner-up logic.
-- [ ] **Phase 2: payments by transaction ID and reminders.** `PaymentVerifier` + Telebirr implementation (direct or via `RELAY_URL`), receipt parser with an HTML fixture, `/paid <id>`, obligations with free passes, unique `txn_id`, needs-review with coordinator buttons, reminders at 24h, 6h (private) and 1h (public).
+- [ ] **Phase 2: payments by transaction ID and reminders.** `PaymentVerifier` + Telebirr implementation (direct or via `RELAY_URL`), receipt parser with an HTML fixture, `/paid <id>`, obligations with free passes, unique `txn_id`, needs-review with coordinator buttons, reminders at 48h, 24h, 18h, 6h, 3h, 1h and 15m (group and private), and a participants post at the deadline.
 - [ ] **Phase 3: admin Mini App.** `initData` validation; Dashboard, Payments review, Results override, Ledger with CSV, Members, Rules, Audit log; role checks.
 - [ ] **Phase 4: screenshots and SMS.** Regex for SMS and links, Anthropic vision for images returning `{txn_id, amount, date}`, fed into `/paid`; delete images after.
 - [ ] **Phase 5: AI personality and awards.** Personas from `personas/*.md`, spice level, English/Amharic mix, guardrails, weekly awards from FPL data, recap, sassy reminders, `/roast`, mention replies, match-day pings, daily cap and template fallback, `member_facts`, `/me`, `/nofun`.

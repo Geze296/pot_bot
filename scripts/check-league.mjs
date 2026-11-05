@@ -90,7 +90,13 @@ async function main() {
   const leagueId = parseLeagueId(process.argv[2]);
   const firstPotGw = Number(process.argv[3] ?? 1);
   if (!leagueId) {
-    console.error("Give your league ID or link, e.g.  node scripts/check-league.mjs 123456");
+    if (String(process.argv[2]).includes("auto-join")) {
+      console.error(
+        "That is an invite link, which the FPL API can't read. Open the league's standings on the FPL site and use the number in the address: /leagues/<ID>/standings/c",
+      );
+    } else {
+      console.error("Give your league ID or link, e.g.  node scripts/check-league.mjs 123456");
+    }
     process.exit(1);
   }
 
@@ -193,6 +199,20 @@ async function main() {
   await writeFile(`fixtures/fpl/histories-${leagueId}.json`, JSON.stringify(histories, null, 2));
   await writeFile("fixtures/fpl/events.json", JSON.stringify(events, null, 2));
   if (status) await writeFile("fixtures/fpl/event-status.json", JSON.stringify(status, null, 2));
+  await writeFile("fixtures/fpl/bootstrap-static.json", JSON.stringify(boot, null, 2));
+
+  // Picks and live points for the latest finished gameweek, for the typed client's tests.
+  const latest = finished.at(-1);
+  if (latest) {
+    const picks = {};
+    for (const m of managers) {
+      picks[m.entry] = await get(`entry/${m.entry}/event/${latest.id}/picks/`).catch(() => null);
+      await sleep(300);
+    }
+    await writeFile(`fixtures/fpl/picks-${leagueId}-gw${latest.id}.json`, JSON.stringify(picks, null, 2));
+    const live = await get(`event/${latest.id}/live/`);
+    await writeFile(`fixtures/fpl/live-gw${latest.id}.json`, JSON.stringify(live, null, 2));
+  }
   console.log(`\nSaved raw data to fixtures/fpl/ for tests.`);
   console.log(
     "CHECK: open one past gameweek on the FPL site. If a manager who took a -4 hit shows the same score as 'net' above, the maths is right; if it matches 'gross', points already include the hit — tell Claude Code.",

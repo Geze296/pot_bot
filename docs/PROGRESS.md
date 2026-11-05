@@ -33,9 +33,14 @@ Confirmed by the owner:
 - Only paid members are ranked for winner and runner-up. A free pass counts as paid.
 - The payment window opens at the previous gameweek's deadline.
 - A member who misses the deadline has their obligation waived: they owe nothing, can't win, and the pot is smaller.
+- A member who pays early and then earns a free pass keeps the payment as a credit toward their next entry fee. It isn't counted in that gameweek's pot.
+- Unpaid members are reminded both in the group (@mention) and by private message: once with 2 days left, twice with 1 day left, four times on deadline day. At the deadline the group gets a list of who is participating.
+
+Chosen by Claude to fit that schedule, not yet confirmed by the owner:
+
+- Exact reminder times, counted back from the deadline: 48h; 24h and 18h; 6h, 3h, 1h and 15m.
 
 Recommended defaults, not yet confirmed by the owner (must be settled before Milestone M2):
 
-- A member who pays early and then earns a free pass keeps the payment as a credit toward their next entry fee. It isn't counted in that gameweek's pot.
 - Settling waits for the coordinator if a `needs_review` payment dated inside the window is still open.
 - A receipt dated after the deadline goes to `needs_review` with the reason "after deadline".

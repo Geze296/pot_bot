@@ -84,7 +84,7 @@ P0 is the first version our group uses. P1 follows within a few gameweeks, and P
 | P1 | `/paid <transaction ID>` verifies against the Telebirr receipt page | A valid payment is verified in under 15 seconds; wrong receiver, short amount, out-of-window date, failed status or a reused ID are each rejected with the reason |
 | P2 | Optional Ethiopia relay for receipt fetches | Setting `RELAY_URL` and `RELAY_SECRET` routes every receipt fetch through the relay |
 | P3 | Payments that fail verification go to the coordinator | The coordinator gets a private message with Approve and Reject buttons; an unreachable receipt is never auto-rejected |
-| M1 | Reminders before payment close | Private reminders at 24 and 6 hours and a public one at 1 hour, sent only to members who haven't paid |
+| M1 | Reminders before payment close, then a participants post | Seven rounds before the deadline: 48h; 24h and 18h; 6h, 3h, 1h and 15m. Each round sends a group message @mentioning every unpaid member and a private message to each of them, and goes only to members who haven't paid. At the deadline the group gets a message listing who is participating in this gameweek |
 | M2 | `/status` and `/table` | They show who paid, the pot, time to deadline, and live gameweek and overall tables |
 | O1 | Data model supports many leagues in one install | Two test leagues in one database never see each other's data |
 

@@ -62,8 +62,9 @@ M3  packages/payments (P1, P2, P3): PaymentVerifier interface, Telebirr verifier
     checks from the SPEC Payment flow, unique txn_id, needs_review with Approve/Reject buttons
     sent privately to the coordinator. /paid <txn id>. Also a tiny relay script in tools/relay/
     I can host on cheap Ethiopian hosting.
-M4  Reminders and status (M1, M2): pg-boss jobs from FPL deadlines; 24h and 6h private, 1h
-    public, unpaid members only, idempotent. /status and /table.
+M4  Reminders and status (M1, M2): pg-boss jobs from FPL deadlines; 48h, 24h, 18h, 6h, 3h, 1h
+    and 15m, in the group and by private message, unpaid members only, idempotent. Participants
+    post at the deadline. /status and /table.
 
 Rules: follow CLAUDE.md hard rules exactly. Ask me before guessing anything about money or
 results. Keep messages in locales/en.json and locales/am.json.
