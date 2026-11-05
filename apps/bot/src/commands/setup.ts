@@ -173,7 +173,8 @@ export function setupCommands({ db, fpl }: BotDeps): Composer<Context> {
       const names = summary.seedFreePassMemberIds
         .map((id) => members.find((other) => other.id === id)?.fplManagerName ?? String(id))
         .join(" & ");
-      lines.push("", t(language, "setup.seedFreePass", { gw: firstPotGw, names, previous: firstPotGw - 1 }));
+      const previous = summary.seedFromEvent ?? firstPotGw - 1;
+      lines.push("", t(language, "setup.seedFreePass", { gw: previous + 1, names, previous }));
     }
     const upcoming = summary.events.find((event) => event.is_next);
     if (upcoming) {

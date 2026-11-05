@@ -66,6 +66,7 @@ export function scoresForEvent(
         points: week.points,
         transferCost: week.event_transfers_cost,
         benchPoints: week.points_on_bench,
+        totalPoints: week.total_points,
       },
     ];
   });
@@ -73,8 +74,7 @@ export function scoresForEvent(
 
 function statusForEvent(event: FplEvent, hasResult: boolean): GameweekStatus {
   if (hasResult) return "settled";
-  if (event.finished) return "finished";
-  return event.is_current ? "live" : "open";
+  return event.finished ? "finished" : "open";
 }
 
 /** The payment window opens at the previous gameweek's deadline. GW1 has none, so it gets a week. */
@@ -92,12 +92,14 @@ export interface SeasonWeek {
 export interface BackfillSummary {
   season: SeasonWeek[];
   seedFreePassMemberIds: number[];
+  /** The finished gameweek the free pass was earned in. */
+  seedFromEvent?: number;
   events: FplEvent[];
 }
 
 /**
  * Creates the league's gameweeks from firstPotGw on and records every finished one, then seeds the free pass
- * from the gameweek before it. Safe to run twice, and it never overwrites a manual score or result (hard rule 8).
+ * from the last finished gameweek, for the first gameweek the bot runs. Safe to run twice, and it never overwrites a manual score or result (hard rule 8).
  * Money for backfilled gameweeks is left at 0 until obligations arrive in Milestone M2.
  */
 export async function backfillSeason(
@@ -111,7 +113,7 @@ export async function backfillSeason(
 
   const potEvents = events.filter((event) => event.id >= firstPotGw);
   const finished = potEvents.filter((event) => event.finished);
-  const previous = events.find((event) => event.id === firstPotGw - 1 && event.finished);
+  const previous = events.filter((event) => event.finished && event.id >= firstPotGw - 1).at(-1);
 
   const needsHistory = finished.length > 0 || previous !== undefined;
   const histories = needsHistory
@@ -151,6 +153,7 @@ export async function backfillSeason(
           points: row.points,
           transferCost: row.transferCost,
           benchPoints: row.benchPoints,
+          totalPoints: row.totalPoints,
           rankInGw: rank,
         };
         const existing = await tx.score.findUnique({
@@ -182,5 +185,5 @@ export async function backfillSeason(
     });
   });
 
-  return { season, seedFreePassMemberIds, events };
+  return { season, seedFreePassMemberIds, ...(previous ? { seedFromEvent: previous.id } : {}), events };
 }

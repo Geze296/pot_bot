@@ -4,12 +4,16 @@ import { createApi } from "./api/server.js";
 import { createBot } from "./bot.js";
 import { loadConfig } from "./config.js";
 import { startJobs } from "./jobs/boss.js";
+import { tickAllLeagues } from "./services/settlement.js";
 
 async function main(): Promise<void> {
   const config = loadConfig(process.env);
 
   const db = createDb(config.databaseUrl);
-  const boss = await startJobs(config.databaseUrl);
+  const fpl = createFplClient();
+  const bot = createBot(config.botToken, { db, fpl });
+  const send = (chatId: bigint, text: string) => bot.api.sendMessage(Number(chatId), text);
+  const boss = await startJobs(config.databaseUrl, () => tickAllLeagues({ db, fpl, send }, new Date()));
   const api = createApi({
     checkDb: async () => {
       await db.$queryRaw`SELECT 1`;
@@ -17,8 +21,6 @@ async function main(): Promise<void> {
   });
   await api.listen({ port: config.apiPort, host: "127.0.0.1" });
   console.log(`API listening on http://127.0.0.1:${config.apiPort}`);
-
-  const bot = createBot(config.botToken, { db, fpl: createFplClient() });
 
   const shutdown = async () => {
     await bot.stop();

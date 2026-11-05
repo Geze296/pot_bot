@@ -6,7 +6,7 @@
 
 - [x] Milestone M0: skeleton. Monorepo, Postgres on host port 5433, first migration, `/start` covered by a stubbed test (not yet tried with a real token)
 - [x] Milestone M1: FPL and league import (L1, L2, L3). Tested with real fixtures and stubbed Telegram; not yet tried in a real group
-- [ ] Milestone M2: rules and settling (R1, R2, R3, O1)
+- [x] Milestone M2: rules and settling (R1, R2, R3, O1). Tested with real fixtures and a simulated GW10; not yet run on a real gameweek
 - [ ] Milestone M3: payments (P1, P2, P3)
 - [ ] Milestone M4: reminders and status (Req M1, Req M2)
 
@@ -15,15 +15,15 @@
 - [x] L1: `/setup` links the group to a classic league. By ID or standings link; invite links get a clear error
 - [x] L2: season backfill from the first pot gameweek. Reproduces all 9 weeks from the check script; the owner's hand check of 3 weeks is still to do. Money for backfilled weeks arrives in Milestone M2
 - [x] L3: members claim their team through a deep link. Owner uses `/link` (reply to a message) and `/unlink`, both audited
-- [ ] R1: league rules are settings
-- [ ] R2: automatic settling
-- [ ] R3: owner or coordinator override
+- [x] R1: league rules are settings. `/rules`, `/setrule`. Not built because the docs don't define how they work: season-long fee, "double or nothing", double-fee gameweeks
+- [x] R2: automatic settling. A job every 15 minutes, after bonus, leagues updated and 1 hour of grace
+- [x] R3: owner or coordinator override. `/override score`, `/override winner`, `/coordinator`, all audited, with a corrected result message
 - [ ] P1: `/paid` verifies against the Telebirr receipt
 - [ ] P2: optional Ethiopia relay
 - [ ] P3: failed verifications go to the coordinator
 - [ ] Req M1: reminders before payment close
 - [ ] Req M2: `/status` and `/table`
-- [ ] O1: many leagues in one install. Schema is scoped by league; isolation test comes in Milestone M2
+- [x] O1: many leagues in one install. Two leagues in one database tested together
 
 ## Rule decisions
 
@@ -57,4 +57,10 @@ Locked by real data (league 1680179, 11 managers, 7 real hits):
 Chosen by Claude to fit the agreed behaviour, not yet confirmed by the owner:
 
 - Exact reminder times, counted back from the deadline: 48h; 24h and 18h; 6h, 3h, 1h and 15m.
+- `prizeShares` is any list of percentages adding up to 100 (the docs say "70/30" and "top 3" without defining top 3). Tied places pool their shares.
+- With `whoCanWin: everyone`, an unpaid winner shares only the pot actually paid in.
+- With `lateRule: lose_free_pass`, a late payer can still win but can't earn a free pass.
+- Starting at an explicit earlier gameweek (`/setup <league> <gw>`) records results only. The past-payment choice in the PRD needs the Mini App grid, so it moves to A1.
+
+Known limit: if a correction takes away a free pass from someone whose early payment already moved on as credit, the credit stays on the later gameweek and they owe the corrected fee. The coordinator sorts that out by hand.
 

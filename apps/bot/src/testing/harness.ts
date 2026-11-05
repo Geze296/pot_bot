@@ -3,6 +3,7 @@ import { createDb, type PrismaClient } from "@potbot/db";
 import { createFplClient, type FplEntryHistory } from "@potbot/fpl";
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createBot } from "../bot.js";
+import { tickAllLeagues } from "../services/settlement.js";
 import { TEST_DATABASE_URL, TEST_SCHEMA } from "./database-url.js";
 
 const fixture = <T>(name: string): T =>
@@ -27,16 +28,45 @@ export const botInfo: UserFromGetMe = {
   supports_join_request_queries: false,
 };
 
+/** Lets a test play out a gameweek that hasn't happened in the saved data. */
+export interface FplWorld {
+  /** Gameweeks FPL should report as finished, beyond the saved data. */
+  finished?: Record<number, { dataChecked?: boolean }>;
+  eventStatus?: { status: { bonus_added: boolean; date: string; event: number; points: string }[]; leagues: string };
+  /** Extra history rows, by gameweek then FPL team ID. Teams left out score 30. */
+  scores?: Record<number, Record<number, { points: number; cost?: number; total?: number }>>;
+  fail?: boolean;
+}
+
+interface BootstrapFixture {
+  events: { id: number; finished: boolean; data_checked: boolean; is_current: boolean; is_next: boolean }[];
+}
+
 /** Serves saved real responses in place of the FPL API (hard rule 3). */
-export function fixtureFetch(options: { failHistories?: boolean } = {}): typeof globalThis.fetch {
-  const bootstrap = fixture<unknown>("bootstrap-static.json");
+export function fixtureFetch(options: { failHistories?: boolean; world?: FplWorld } = {}): typeof globalThis.fetch {
+  const world = options.world ?? {};
+  // Only events are used here, and serving the full 2.5 MB fixture on every tick makes these tests crawl.
+  const { events } = fixture<BootstrapFixture>("bootstrap-static.json");
+  const bootstrap = { events, teams: [], elements: [] };
   const histories = fixture<Record<string, FplEntryHistory>>(`histories-${LEAGUE_ID}.json`);
   const { league, managers } = fixture<{ league: unknown; managers: unknown[] }>(`league-${LEAGUE_ID}.json`);
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
   return async (input) => {
     const path = new URL(String(input)).pathname.replace("/api/", "");
-    if (path === "bootstrap-static/") return json(bootstrap);
+    if (world.fail) return json({}, 503);
+    if (path === "bootstrap-static/") {
+      const finished = world.finished ?? {};
+      return json({
+        ...bootstrap,
+        events: bootstrap.events.map((event) =>
+          finished[event.id]
+            ? { ...event, finished: true, data_checked: finished[event.id]?.dataChecked ?? false }
+            : event,
+        ),
+      });
+    }
+    if (path === "event-status/") return json(world.eventStatus ?? { status: [], leagues: "" });
     if (path === `leagues-classic/${LEAGUE_ID}/standings/`) {
       return json({
         league,
@@ -47,7 +77,20 @@ export function fixtureFetch(options: { failHistories?: boolean } = {}): typeof 
     const entry = path.match(/^entry\/(\d+)\/history\/$/)?.[1];
     if (entry) {
       if (options.failHistories) return json({}, 503);
-      if (histories[entry]) return json(histories[entry]);
+      const history = histories[entry];
+      if (history) {
+        const extra = Object.entries(world.scores ?? {}).map(([event, teams]) => {
+          const score = teams[Number(entry)] ?? { points: 30 };
+          return {
+            event: Number(event),
+            points: score.points,
+            total_points: score.total ?? 0,
+            event_transfers_cost: score.cost ?? 0,
+            points_on_bench: 0,
+          };
+        });
+        return json({ ...history, current: [...history.current, ...extra] });
+      }
     }
     return json({}, 404);
   };
@@ -72,9 +115,13 @@ let updateId = 0;
 
 export function createHarness(options: { chatMemberStatus?: string; failHistories?: boolean } = {}) {
   const db = createDb(TEST_DATABASE_URL);
+  const world: FplWorld = {};
+  // The clock jumps on every read, so the bootstrap cache never hides a change a test makes to the world.
+  let clock = 0;
   const fpl = createFplClient({
-    fetch: fixtureFetch({ failHistories: options.failHistories ?? false }),
+    fetch: fixtureFetch({ failHistories: options.failHistories ?? false, world }),
     sleep: async () => {},
+    now: () => (clock += 60 * 60 * 1000),
   });
   const bot = createBot("test-token", { db, fpl }, { botInfo });
 
@@ -107,9 +154,20 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     } as Update;
   };
 
+  const posts: { chatId: bigint; text: string }[] = [];
+  const telegram = { down: false };
+  const send = async (chatId: bigint, text: string) => {
+    if (telegram.down) throw new Error("Telegram is down");
+    posts.push({ chatId, text });
+  };
+
   return {
     db,
     calls,
+    world,
+    posts,
+    telegram,
+    tick: (now: Date) => tickAllLeagues({ db, fpl, send }, now),
     /** Text of every message and edit sent since the last call. */
     takeTexts(): string[] {
       const texts = calls
