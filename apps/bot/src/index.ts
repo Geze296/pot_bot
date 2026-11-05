@@ -1,4 +1,5 @@
 import { createDb } from "@potbot/db";
+import { createFplClient } from "@potbot/fpl";
 import { createApi } from "./api/server.js";
 import { createBot } from "./bot.js";
 import { loadConfig } from "./config.js";
@@ -17,7 +18,7 @@ async function main(): Promise<void> {
   await api.listen({ port: config.apiPort, host: "127.0.0.1" });
   console.log(`API listening on http://127.0.0.1:${config.apiPort}`);
 
-  const bot = createBot(config.botToken);
+  const bot = createBot(config.botToken, { db, fpl: createFplClient() });
 
   const shutdown = async () => {
     await bot.stop();

@@ -32,7 +32,8 @@ function privateMessage(text: string) {
 }
 
 function botWithCapturedReplies() {
-  const bot = createBot("test-token", { botInfo });
+  // These tests only cover commands that touch neither the database nor FPL.
+  const bot = createBot("test-token", { db: {} as never, fpl: {} as never }, { botInfo });
   const replies: { method: string; chat_id: unknown; text: unknown }[] = [];
   // Replaces the network call, so tests never reach Telegram.
   bot.api.config.use(async (_prev, method, payload) => {

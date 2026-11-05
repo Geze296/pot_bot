@@ -5,16 +5,16 @@
 ## Milestones (P0)
 
 - [x] Milestone M0: skeleton. Monorepo, Postgres on host port 5433, first migration, `/start` covered by a stubbed test (not yet tried with a real token)
-- [ ] Milestone M1: FPL and league import (L1, L2, L3)
+- [x] Milestone M1: FPL and league import (L1, L2, L3). Tested with real fixtures and stubbed Telegram; not yet tried in a real group
 - [ ] Milestone M2: rules and settling (R1, R2, R3, O1)
 - [ ] Milestone M3: payments (P1, P2, P3)
 - [ ] Milestone M4: reminders and status (Req M1, Req M2)
 
 ## P0 requirements
 
-- [ ] L1: `/setup` links the group to a classic league
-- [ ] L2: season backfill from the first pot gameweek
-- [ ] L3: members claim their team through a deep link
+- [x] L1: `/setup` links the group to a classic league. By ID or standings link; invite links get a clear error
+- [x] L2: season backfill from the first pot gameweek. Reproduces all 9 weeks from the check script; the owner's hand check of 3 weeks is still to do. Money for backfilled weeks arrives in Milestone M2
+- [x] L3: members claim their team through a deep link. Owner uses `/link` (reply to a message) and `/unlink`, both audited
 - [ ] R1: league rules are settings
 - [ ] R2: automatic settling
 - [ ] R3: owner or coordinator override

@@ -27,7 +27,7 @@ pnpm install
 docker compose up -d db        # Postgres only
 pnpm db:migrate                # prisma migrate dev
 pnpm dev                       # bot + api + web
-pnpm test                      # vitest, all packages
+pnpm test                      # vitest, all packages (needs the db running; uses its own schema)
 pnpm lint && pnpm typecheck
 node scripts/check-league.mjs <leagueId|leagueUrl> [firstPotGw]   # sanity-check real FPL data
 ```

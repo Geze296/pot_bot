@@ -11,7 +11,7 @@
     "dev": "pnpm --parallel --filter @potbot/bot --filter @potbot/web dev",
     "build": "pnpm --filter @potbot/web build",
     "db:migrate": "pnpm --filter @potbot/db migrate",
-    "db:deploy": "pnpm --filter @potbot/db deploy",
+    "db:deploy": "pnpm --filter @potbot/db migrate:deploy",
     "db:generate": "pnpm --filter @potbot/db generate",
     "test": "vitest run",
     "lint": "eslint . && prettier --check .",

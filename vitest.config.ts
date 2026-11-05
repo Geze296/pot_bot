@@ -5,5 +5,8 @@ export default defineConfig({
     include: ["apps/**/*.test.{ts,tsx}", "packages/**/*.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**"],
     passWithNoTests: true,
+    globalSetup: ["./vitest.global-setup.ts"],
+    // Database tests share one schema, so test files take turns.
+    fileParallelism: false,
   },
 });
