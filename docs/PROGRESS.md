@@ -44,7 +44,10 @@ Confirmed by the owner:
 
 Screenshot payments (replaces `/paid` receipt checks for now; moves P4 into Milestone M3):
 
-- A photo counts only if it is a Telebirr screenshot showing a transaction reference, sender name and receiver name, and the receiver matches the name the admin provides. Any other image is not considered.
+- A photo counts only if it is a successful Telebirr screenshot showing a transaction number and receiver, and the receiver matches the name the admin provides. Real screenshots show no sender name, so that can't be required. Any other image is not considered.
+- The amount on a screenshot includes Telebirr's own fee (101.00 for a 100 birr payment). It must be at least the fee, and the pot counts the entry fee.
+- Screenshot times have no timezone and are read in the league's time zone.
+- The AI provider is Gemini (owner's decision), replacing Anthropic in the stack.
 - In the group, a photo is checked only when the bot is @mentioned, in the caption or in a reply to the photo. This keeps AI costs down. Every photo sent privately to the bot is checked.
 - When a member sends it privately, after the check the bot tells the group that the member paid and shows the screenshot.
 - A transaction reference can be used only once (hard rule 6).

@@ -29,7 +29,7 @@ The two parts you assumed need manual work, results and payment checks, both hav
 | Gameweek deadlines | FPL's public API lists every gameweek with its deadline time. The bot schedules reminders from it. | Admin sets the deadline by hand |
 | Scores, leader, winner | FPL's public API returns your private league's table, including each manager's points for the current gameweek. No login or key needed. | Admin types scores in the web app |
 | "Are the points final?" | FPL's `event-status/` endpoint says when bonus points are added and leagues updated. The bot waits for that before declaring a winner. | Admin presses "Confirm results" |
-| Payment proof | Claude vision reads the screenshot (or the pasted Telebirr SMS) and pulls out the transaction ID, amount and time. | Member types the ID with `/paid DET8FJGUJ4` |
+| Payment proof | Gemini vision reads the screenshot (or the pasted Telebirr SMS) and pulls out the transaction ID, amount and time. | Member types the ID with `/paid DET8FJGUJ4` |
 | Payment is real | Every Telebirr transaction has a public receipt page at `transactioninfo.ethiotelecom.et/receipt/<ID>`. The bot fetches it and checks receiver, amount, date and status. | Coordinator approves it in the web app |
 | Fake or reused proof | Each transaction ID can be used only once, and its date must fall inside the current payment window. | Coordinator rejects it |
 
@@ -89,7 +89,7 @@ Closing the payment window at the FPL deadline is a default; the admin can move 
 A member sends proof in any form they like, the bot verifies it against Telebirr in seconds, and only failures reach the coordinator.
 
 1. **Member sends proof**, either in the group or in a private chat with the bot. It can be a screenshot, the forwarded Telebirr SMS, the receipt link, or `/paid <transaction ID>`.
-2. **Bot extracts the transaction ID.** It uses a regex for SMS and links, and Claude vision for screenshots. If it finds nothing, it asks the member to type the ID.
+2. **Bot extracts the transaction ID.** It uses a regex for SMS and links, and Gemini vision for screenshots. If it finds nothing, it asks the member to type the ID.
 3. **Bot fetches the receipt** from Telebirr through the Ethiopia relay (see Architecture).
 4. **Bot runs the checks:**
    - The status is completed.
@@ -102,7 +102,7 @@ A member sends proof in any form they like, the bot verifies it against Telebirr
 6. **Any check fails or the receipt can't be reached:** the payment goes to "Needs review" in the web app with the reason. The coordinator approves or rejects with one tap, and the member is told the result.
 7. **Cash or other payments:** the coordinator marks the member paid by hand, with a note.
 
-**Current mode: screenshot checks only.** For now the receipt page in steps 3 and 4 is not fetched. The bot reads the screenshot itself and accepts it only if it is a Telebirr screenshot showing a transaction reference, sender name and receiver name, with the receiver matching the name the admin provided. Any other image is not considered. To keep AI costs down, a group photo is checked only when the bot is @mentioned in its caption or in a reply to it; every photo sent privately to the bot is checked. A screenshot that can't be read goes to the coordinator by private message with Approve and Reject buttons, and an approved payment is then shown in the group. A screenshot sent privately is announced and shown in the group after the check. One dated after the deadline is rejected for this gameweek and counts toward the next. The receipt check can be turned on later; until then an edited screenshot could pass, which step 3 would otherwise catch.
+**Current mode: screenshot checks only.** For now the receipt page in steps 3 and 4 is not fetched. The bot reads the screenshot itself and accepts it only if it is a successful Telebirr screenshot showing a transaction number and receiver, with the receiver matching the name the admin provided and an amount of at least the fee. Telebirr's screenshots show no sender name, and their amount includes Telebirr's own fee (101.00 for a 100 birr payment), so the pot counts the entry fee, not the amount on the screenshot. Their times have no timezone and are read in the league's time zone. Any other image is not considered. To keep AI costs down, a group photo is checked only when the bot is @mentioned in its caption or in a reply to it; every photo sent privately to the bot is checked. A screenshot that can't be read goes to the coordinator by private message with Approve and Reject buttons, and an approved payment is then shown in the group. A screenshot sent privately is announced and shown in the group after the check. One dated after the deadline is rejected for this gameweek and counts toward the next. The receipt check can be turned on later; until then an edited screenshot could pass, which step 3 would otherwise catch.
 
 **Privacy:** keep only the transaction ID, amount, date, status and a match flag. Do not store full receipt pages, phone numbers or screenshots longer than needed. Screenshots in Telegram are already visible to the group, but your database should hold less.
 
@@ -216,7 +216,7 @@ flowchart TB
     subgraph EXT["Outside services"]
         FPL["FPL public API<br/>deadlines, scores, picks<br/>polled gently, cached"]
         RELAY["Ethiopia relay<br/>tiny proxy hosted in Ethiopia<br/>fetches Telebirr receipt pages"]
-        AI["Anthropic API (Claude)<br/>reads screenshots<br/>persona, recaps, roasts"]
+        AI["Gemini API<br/>reads screenshots<br/>persona, recaps, roasts"]
     end
     G --> BOT
     PC --> BOT
@@ -234,7 +234,7 @@ flowchart TB
 | Database | PostgreSQL with Prisma | Relational fits the ledger; Prisma migrations are easy to vibe code |
 | Scheduled jobs | pg-boss | Job queue stored in Postgres, so no Redis to run |
 | Mini App | React with Vite | Small, fast; opens inside Telegram |
-| AI | Anthropic API | Vision for screenshots and text for persona; optional |
+| AI | Gemini API | Vision for screenshots and text for persona; optional |
 | Hosting | Any small VPS, plus the relay in Ethiopia | Or host everything in Ethiopia and skip the relay |
 
 The relay can be a single small script on cheap Ethiopian hosting that accepts a transaction ID plus a shared secret and returns the receipt page; verifier-api ships an example of this pattern.

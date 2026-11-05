@@ -15,7 +15,7 @@ reminds late payers, settles each gameweek automatically, and keeps the group ch
 - `packages/core` — PURE domain logic: rules, pot maths, ties, free passes, obligations, ledger, awards. No I/O.
 - `packages/fpl` — typed FPL API client with caching + retry
 - `packages/payments` — `PaymentVerifier` interface + Telebirr implementation (+ optional Ethiopia relay)
-- `packages/ai` — Anthropic API wrapper, personas, guardrails, template fallback
+- `packages/ai` — Gemini API wrapper, personas, guardrails, template fallback
 - `packages/db` — Prisma schema + client for PostgreSQL
 - Jobs: pg-boss (Postgres-backed, no Redis)
 - Tests: Vitest. Lint: ESLint + Prettier. CI: GitHub Actions running lint + typecheck + tests.
@@ -56,7 +56,7 @@ node scripts/check-league.mjs <leagueId|leagueUrl> [firstPotGw]   # sanity-check
 12. **Store minimal personal data**: transaction ID, amount, date, status, match flags. Delete screenshots after extracting the ID.
 13. FPL API is unofficial: server-side only (no CORS), descriptive `User-Agent`, cache `bootstrap-static` ≥ 5 min, back off on errors, keep all FPL calls inside `packages/fpl`.
 14. Telebirr receipt URL: `https://transactioninfo.ethiotelecom.et/receipt/<TXN_ID>`. It may block non-Ethiopian IPs: support `RELAY_URL` + `RELAY_SECRET`. Keep the HTML parser in one file with a fixture test — the page layout can change.
-15. AI is optional: with no `ANTHROPIC_API_KEY`, every AI feature falls back to templates. Enforce a per-league daily cap. Roast FPL decisions only — never religion, ethnicity, family, looks or money troubles; respect `/nofun`.
+15. AI is optional: with no `GEMINI_API_KEY`, every AI feature falls back to templates (a payment screenshot goes to the coordinator). Enforce a per-league daily cap. Roast FPL decisions only — never religion, ethnicity, family, looks or money troubles; respect `/nofun`.
 
 ## How to work with me
 
