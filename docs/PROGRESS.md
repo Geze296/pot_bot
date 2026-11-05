@@ -14,7 +14,7 @@
 
 - [x] L1: `/setup` links the group to a classic league. By ID or standings link; invite links get a clear error
 - [x] L2: season backfill from the first pot gameweek. Reproduces all 9 weeks from the check script; the owner's hand check of 3 weeks is still to do. Money for backfilled weeks arrives in Milestone M2
-- [x] L3: members claim their team through a deep link. Owner uses `/link` (reply to a message) and `/unlink`, both audited
+- [x] L3: members claim their team through a deep link. Owner uses `/link` (reply to a message) and `/unlink`, both audited. Claims are announced in the group, and people outside it are refused
 - [x] R1: league rules are settings. `/rules`, `/setrule`. Not built because the docs don't define how they work: season-long fee, "double or nothing", double-fee gameweeks
 - [x] R2: automatic settling. A job every 15 minutes, after bonus, leagues updated and 1 hour of grace
 - [x] R3: owner or coordinator override. `/override score`, `/override winner`, `/coordinator`, all audited, with a corrected result message

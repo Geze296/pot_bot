@@ -32,6 +32,8 @@
   "join.pick": "{league}: which team is yours?",
   "join.none": "Every team in {league} has been claimed. If yours is wrong, ask the league owner.",
   "join.alreadyClaimed": "You're already linked to {team} in {league}.",
+  "join.announced": "{name} claimed {team} ({manager}).",
+  "join.notInGroup": "Only people in the league's group can claim a team. Join the group first, then tap the link again.",
   "join.taken": "Someone just claimed that team. Pick another.",
   "join.success": "You're in! You're linked to {team} in {league}.",
   "link.usage": "Reply to someone's message with /link <FPL team ID> to link them to that team.",

@@ -7,6 +7,8 @@ const { db } = harness;
 beforeEach(async () => {
   await clearDatabase(db);
   harness.calls.length = 0;
+  harness.blockedChats.clear();
+  Object.assign(harness.groupMembership, { statuses: new Map(), extra: {}, failing: false });
 });
 afterAll(() => db.$disconnect());
 
@@ -255,7 +257,7 @@ describe("L3: claiming a team", () => {
     expect(harness.lastKeyboard().flat()).toHaveLength(11);
 
     await harness.tap(ALICE, ALICE.id, jazz!.callback_data!);
-    expect(harness.takeTexts().at(-1)).toContain("linked to Jazz");
+    expect(harness.takeTexts()).toContainEqual(expect.stringContaining("linked to Jazz"));
 
     await harness.say(BOB, BOB.id, link);
     const buttons = harness
@@ -287,10 +289,11 @@ describe("L3: claiming a team", () => {
     const kings = await memberByManager("KB Gselassie");
 
     await harness.tap(ALICE, ALICE.id, `claim:${jazz.id}`);
+    harness.takeTexts();
     await harness.tap(ALICE, ALICE.id, `claim:${kings.id}`);
 
     expect((await db.member.findUniqueOrThrow({ where: { id: kings.id } })).userId).toBeNull();
-    expect(harness.takeTexts().at(-1)).toContain("already linked to Jazz");
+    expect(harness.takeTexts()).toEqual([expect.stringContaining("already linked to Jazz")]);
   });
 
   it("says so when someone who already claimed opens the link again", async () => {
@@ -303,6 +306,70 @@ describe("L3: claiming a team", () => {
     await harness.say(ALICE, ALICE.id, link);
 
     expect(harness.takeTexts()[0]).toContain("already linked to Jazz");
+  });
+
+  it("tells the group who claimed which team, so a wrong claim gets noticed", async () => {
+    const link = await joinLink();
+    await harness.say(ALICE, ALICE.id, link);
+    const jazz = await memberByManager("Yabets M");
+    harness.calls.length = 0;
+    await harness.tap(ALICE, ALICE.id, `claim:${jazz.id}`);
+
+    const announcement = harness.calls.find(
+      (call) => call.method === "sendMessage" && call.payload.chat_id === GROUP_ID,
+    );
+    expect(announcement?.payload.text).toBe("Alice claimed Jazz (Yabets M).");
+  });
+
+  it("a failed announcement doesn't undo the claim", async () => {
+    const link = await joinLink();
+    await harness.say(ALICE, ALICE.id, link);
+    const jazz = await memberByManager("Yabets M");
+    harness.blockedChats.add(GROUP_ID);
+    await harness.tap(ALICE, ALICE.id, `claim:${jazz.id}`);
+    harness.blockedChats.clear();
+
+    expect((await db.member.findUniqueOrThrow({ where: { id: jazz.id } })).userId).not.toBeNull();
+    expect(harness.takeTexts()).toContainEqual(expect.stringContaining("linked to Jazz"));
+  });
+
+  it.each(["left", "kicked"])("someone whose status in the group is %s can't see or claim a team", async (status) => {
+    const link = await joinLink();
+    harness.groupMembership.statuses.set(ALICE.id, status);
+    await harness.say(ALICE, ALICE.id, link);
+    expect(harness.lastKeyboard()).toEqual([]);
+    expect(harness.takeTexts()).toEqual([expect.stringContaining("Only people in the league's group")]);
+
+    // An old list of buttons, opened before they left the group, doesn't work either.
+    const jazz = await memberByManager("Yabets M");
+    await harness.tap(ALICE, ALICE.id, `claim:${jazz.id}`);
+    expect((await db.member.findUniqueOrThrow({ where: { id: jazz.id } })).userId).toBeNull();
+  });
+
+  it("a restricted member who is still in the group can claim", async () => {
+    const link = await joinLink();
+    harness.groupMembership.statuses.set(ALICE.id, "restricted");
+    harness.groupMembership.extra = { is_member: true };
+    await harness.say(ALICE, ALICE.id, link);
+
+    expect(harness.takeTexts()[0]).toContain("which team is yours");
+  });
+
+  it("a restricted person who has left the group can't", async () => {
+    const link = await joinLink();
+    harness.groupMembership.statuses.set(ALICE.id, "restricted");
+    harness.groupMembership.extra = { is_member: false };
+    await harness.say(ALICE, ALICE.id, link);
+
+    expect(harness.takeTexts()[0]).toContain("Only people in the league's group");
+  });
+
+  it("if Telegram won't say, the claim goes ahead, since the group sees it anyway", async () => {
+    const link = await joinLink();
+    harness.groupMembership.failing = true;
+    await harness.say(ALICE, ALICE.id, link);
+
+    expect(harness.takeTexts()[0]).toContain("which team is yours");
   });
 
   it("rejects a bad link", async () => {

@@ -2,7 +2,7 @@ import { Composer, InlineKeyboard, type Context } from "grammy";
 import type { League, Member, PrismaClient } from "@potbot/db";
 import { t, toLanguage, type Language } from "../i18n/index.js";
 import { SETUP_STATE } from "../services/league-setup.js";
-import { ensureUser, isUniqueViolation } from "../services/users.js";
+import { displayName, ensureUser, isUniqueViolation } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
 
 const JOIN_PREFIX = "join_";
@@ -19,6 +19,21 @@ function teamKeyboard(members: Member[]): InlineKeyboard {
     keyboard.text(`${member.fplTeamName} (${member.fplManagerName})`, `claim:${member.id}`).row();
   }
   return keyboard;
+}
+
+/**
+ * True only when Telegram says the person isn't in the group. Telegram only guarantees this lookup for bots that are
+ * group admins, so if it fails the claim goes ahead: the group sees every claim, and the owner can /unlink.
+ */
+async function isOutsideGroup(ctx: Context, league: League, telegramId: number): Promise<boolean> {
+  try {
+    const member = await ctx.api.getChatMember(Number(league.telegramChatId), telegramId);
+    if (member.status === "restricted") return !member.is_member;
+    return member.status === "left" || member.status === "kicked";
+  } catch (error) {
+    console.error("Couldn't check group membership:", error);
+    return false;
+  }
 }
 
 export function joinCommands({ db }: BotDeps): Composer<Context> {
@@ -38,6 +53,8 @@ export function joinCommands({ db }: BotDeps): Composer<Context> {
     const league = await db.league.findUnique({ where: { joinToken: ctx.match.slice(JOIN_PREFIX.length) } });
     if (!league || league.setupState !== SETUP_STATE.active) return ctx.reply(t(language, "join.invalid"));
 
+    if (await isOutsideGroup(ctx, league, ctx.from!.id)) return ctx.reply(t(language, "join.notInGroup"));
+
     const user = await ensureUser(db, ctx.from!);
     const claimed = await db.member.findFirst({ where: { leagueId: league.id, userId: user.id } });
     if (claimed) {
@@ -53,6 +70,9 @@ export function joinCommands({ db }: BotDeps): Composer<Context> {
       include: { league: true },
     });
     if (!member) return ctx.answerCallbackQuery();
+    if (await isOutsideGroup(ctx, member.league, ctx.from.id)) {
+      return ctx.answerCallbackQuery({ text: t(language, "join.notInGroup"), show_alert: true });
+    }
     const user = await ensureUser(db, ctx.from);
 
     try {
@@ -75,7 +95,21 @@ export function joinCommands({ db }: BotDeps): Composer<Context> {
     }
 
     await ctx.answerCallbackQuery();
-    return ctx.editMessageText(t(language, "join.success", { team: member.fplTeamName, league: member.league.name }));
+    await ctx.editMessageText(t(language, "join.success", { team: member.fplTeamName, league: member.league.name }));
+
+    // Announced so a wrong claim gets noticed. If this fails, the claim itself still stands.
+    try {
+      await ctx.api.sendMessage(
+        Number(member.league.telegramChatId),
+        t("en", "join.announced", {
+          name: displayName(ctx.from),
+          team: member.fplTeamName,
+          manager: member.fplManagerName,
+        }),
+      );
+    } catch (error) {
+      console.error("Couldn't announce a claim:", error);
+    }
   });
 
   return composer;

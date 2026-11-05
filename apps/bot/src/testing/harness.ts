@@ -143,6 +143,12 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
   );
 
   const calls: SentCall[] = [];
+  /** What Telegram says about people's membership of the group. */
+  const groupMembership = {
+    statuses: new Map<number, string>(),
+    extra: {} as Record<string, unknown>,
+    failing: false,
+  };
   /** Chats that haven't pressed Start, so private messages to them fail. */
   const blockedChats = new Set<number>();
   // Replaces the network call, so tests never reach Telegram.
@@ -151,7 +157,10 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     if (chatId !== undefined && blockedChats.has(chatId)) throw new Error("Forbidden: bot can't initiate conversation");
     calls.push({ method, payload: payload as Record<string, unknown> });
     if (method === "getChatMember") {
-      return { ok: true, result: { status: options.chatMemberStatus ?? "administrator" } } as never;
+      const userId = (payload as { user_id: number }).user_id;
+      if (groupMembership.failing) throw new Error("Bad Request: not enough rights");
+      const status = groupMembership.statuses.get(userId) ?? options.chatMemberStatus ?? "administrator";
+      return { ok: true, result: { status, ...groupMembership.extra } } as never;
     }
     return { ok: true, result: true } as never;
   });
@@ -191,6 +200,7 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     reader,
     clock,
     blockedChats,
+    groupMembership,
     /** A photo message. Put "@pot_test_bot" in the caption to mention the bot. */
     photo: (from: Person, chatId: number, options: { caption?: string; fileId?: string; messageId?: number } = {}) => {
       const fileId = options.fileId ?? `file-${++updateId}`;
