@@ -13,3 +13,6 @@ packages/db/src/generated/
 
 # Starter bundle, duplicates files already in the repo
 pot-bot-starter.zip
+
+# Editor settings
+.vscode/
