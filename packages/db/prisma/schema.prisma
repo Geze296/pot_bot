@@ -118,6 +118,7 @@ model User {
   id          Int    @id @default(autoincrement())
   telegramId  BigInt @unique @map("telegram_id")
   displayName String @map("display_name")
+  username    String? // Telegram @username, for mentions. People can change or remove it.
   language    String @default("en")
 
   members            Member[]

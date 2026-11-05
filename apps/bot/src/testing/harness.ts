@@ -101,6 +101,7 @@ export interface Person {
   id: number;
   first_name: string;
   language_code?: string;
+  username?: string;
 }
 
 export const OWNER: Person = { id: 100, first_name: "Owner", language_code: "en" };
@@ -184,11 +185,11 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     } as Update;
   };
 
-  const posts: { chatId: bigint; text: string }[] = [];
+  const posts: { chatId: bigint; text: string; parseMode?: string }[] = [];
   const telegram = { down: false };
-  const send = async (chatId: bigint, text: string) => {
-    if (telegram.down) throw new Error("Telegram is down");
-    posts.push({ chatId, text });
+  const send = async (chatId: bigint, text: string, options?: { parse_mode: "HTML" }) => {
+    if (telegram.down || blockedChats.has(Number(chatId))) throw new Error("Telegram is down");
+    posts.push({ chatId, text, ...(options ? { parseMode: options.parse_mode } : {}) });
   };
 
   return {

@@ -1,11 +1,12 @@
 import { ScreenshotReadError, type ScreenshotReading } from "@potbot/ai";
-import type { League, Member, PrismaClient, User } from "@potbot/db";
+import type { League, Member, User } from "@potbot/db";
 import { checkScreenshot, type ScreenshotDecision } from "@potbot/payments";
 import { Composer, InlineKeyboard, type Api, type Context } from "grammy";
 import type { Message, MessageEntity } from "grammy/types";
 import { formatLocalTime } from "../i18n/format.js";
 import { t, toLanguage, type Language, type MessageKey } from "../i18n/index.js";
 import { SETUP_STATE } from "../services/league-setup.js";
+import { claimMessage } from "../services/message-log.js";
 import {
   currentGameweek,
   currentObligation,
@@ -15,7 +16,7 @@ import {
   recordDecision,
   type AnyReviewReason,
 } from "../services/payments.js";
-import { ensureUser, isUniqueViolation } from "../services/users.js";
+import { ensureUser } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
 
 /** Keeps a burst of photos, or a bug, from running up the league's AI bill (hard rule 15). */
@@ -65,16 +66,6 @@ async function tryDirectMessage(api: Api, telegramId: bigint | undefined, text: 
   }
 }
 
-async function claim(db: PrismaClient, leagueId: number, dedupeKey: string, kind: string): Promise<boolean> {
-  try {
-    await db.messageLog.create({ data: { leagueId, dedupeKey, kind } });
-    return true;
-  } catch (error) {
-    if (isUniqueViolation(error)) return false;
-    throw error;
-  }
-}
-
 export function paymentCommands(deps: BotDeps): Composer<Context> {
   const { db } = deps;
   const composer = new Composer<Context>();
@@ -99,7 +90,7 @@ export function paymentCommands(deps: BotDeps): Composer<Context> {
 
     try {
       const reading = await deps.readScreenshot(await deps.downloadFile(image.fileId));
-      await claim(db, league.id, `read:${image.uniqueId}`, "screenshot_read");
+      await claimMessage(db, league.id, `read:${image.uniqueId}`, "screenshot_read");
       return reading;
     } catch (error) {
       if (!(error instanceof ScreenshotReadError)) console.error("Screenshot download failed:", error);
@@ -211,7 +202,7 @@ export function paymentCommands(deps: BotDeps): Composer<Context> {
       where: { gameweekId: gameweek.id, memberId: member.id, status: "due" },
     });
     if (!obligation) return;
-    if (await claim(db, league.id, `nudge:gw${gameweek.fplEventId}:member${member.id}`, "nudge")) {
+    if (await claimMessage(db, league.id, `nudge:gw${gameweek.fplEventId}:member${member.id}`, "nudge")) {
       await ctx.reply(t("en", "payments.nudge", { name: member.fplManagerName }));
     }
   }

@@ -8,6 +8,7 @@
     "postinstall": "prisma generate",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
+    "postmigrate": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
     "typecheck": "tsc --noEmit"
   },

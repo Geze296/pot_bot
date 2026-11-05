@@ -15,12 +15,14 @@ import type { Gameweek, League, Member, Prisma, PrismaClient } from "@potbot/db"
 import type { FplClient, FplEvent } from "@potbot/fpl";
 import { t } from "../i18n/index.js";
 import { scoresForEvent, SETUP_STATE } from "./league-setup.js";
+import { claimMessage, releaseMessage } from "./message-log.js";
+import { postDeadlineMessages, sendReminders } from "./reminders.js";
 import { isUniqueViolation } from "./users.js";
 
 export interface SettlementDeps {
   db: PrismaClient;
   fpl: FplClient;
-  send: (chatId: bigint, text: string) => Promise<unknown>;
+  send: (chatId: bigint, text: string, options?: { parse_mode: "HTML" }) => Promise<unknown>;
 }
 
 type Tx = Prisma.TransactionClient;
@@ -142,17 +144,6 @@ function resultLines(gameweek: Gameweek, pot: number, outcome: SettleOutcome, me
     lines.push(t("en", "settle.halfPrice", { gw: next, names: names(outcome.halfPriceIds) }));
   }
   return lines;
-}
-
-/** Records that a message is going out. False means an earlier run already sent it (hard rule 7). */
-async function claimMessage(db: PrismaClient, leagueId: number, dedupeKey: string, kind: string): Promise<boolean> {
-  try {
-    await db.messageLog.create({ data: { leagueId, dedupeKey, kind } });
-    return true;
-  } catch (error) {
-    if (isUniqueViolation(error)) return false;
-    throw error;
-  }
 }
 
 /** Saves FPL's scores for the gameweek, keeping any manual override (hard rule 8). */
@@ -316,7 +307,7 @@ async function postPendingResults({ db, send }: SettlementDeps, league: League):
     try {
       await send(league.telegramChatId, lines.join("\n"));
     } catch (error) {
-      await db.messageLog.delete({ where: { leagueId_dedupeKey: { leagueId: league.id, dedupeKey: key } } });
+      await releaseMessage(db, league.id, key);
       throw error;
     }
   }
@@ -365,6 +356,14 @@ export async function tickLeague(deps: SettlementDeps, leagueId: number, now: Da
 
   const { events } = await fpl.getBootstrap();
   await openAndLockGameweeks(db, league, events, now);
+
+  // A Telegram failure here is retried next tick. It must not hold up settling.
+  try {
+    await postDeadlineMessages(deps, league);
+    await sendReminders(deps, league, now);
+  } catch (error) {
+    console.error(`League ${leagueId} couldn't post reminders:`, error);
+  }
 
   // Settling goes in order, because each result decides the next gameweek's free pass.
   const locked = await db.gameweek.findMany({

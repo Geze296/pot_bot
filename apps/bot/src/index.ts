@@ -20,7 +20,8 @@ async function main(): Promise<void> {
     ...(config.geminiApiKey ? { readScreenshot: createScreenshotReader({ apiKey: config.geminiApiKey }) } : {}),
     downloadFile: (fileId) => downloadTelegramFile(bot.api, config.botToken, fileId),
   });
-  const send = (chatId: bigint, text: string) => bot.api.sendMessage(Number(chatId), text);
+  const send = (chatId: bigint, text: string, options?: { parse_mode: "HTML" }) =>
+    bot.api.sendMessage(Number(chatId), text, options);
   const boss = await startJobs(config.databaseUrl, () => tickAllLeagues({ db, fpl, send }, new Date()));
   const api = createApi({
     checkDb: async () => {

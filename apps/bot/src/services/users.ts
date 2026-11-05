@@ -4,6 +4,7 @@ export interface TelegramPerson {
   id: number;
   first_name: string;
   last_name?: string;
+  username?: string;
   language_code?: string;
 }
 
@@ -14,8 +15,13 @@ export function ensureUser(db: PrismaClient, person: TelegramPerson): Promise<Us
   const language = person.language_code === "am" ? "am" : "en";
   return db.user.upsert({
     where: { telegramId: BigInt(person.id) },
-    create: { telegramId: BigInt(person.id), displayName: displayName(person), language },
-    update: { displayName: displayName(person) },
+    create: {
+      telegramId: BigInt(person.id),
+      displayName: displayName(person),
+      username: person.username ?? null,
+      language,
+    },
+    update: { displayName: displayName(person), username: person.username ?? null },
   });
 }
 

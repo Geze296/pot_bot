@@ -8,7 +8,7 @@
 - [x] Milestone M1: FPL and league import (L1, L2, L3). Tested with real fixtures and stubbed Telegram; not yet tried in a real group
 - [x] Milestone M2: rules and settling (R1, R2, R3, O1). Tested with real fixtures and a simulated GW10; not yet run on a real gameweek
 - [x] Milestone M3: payments (P3, P6; P1 and P2 deferred). Screenshot reading checked on real samples through live Gemini; the Telegram side is tested with a simulated Telegram
-- [ ] Milestone M4: reminders and status (Req M1, Req M2)
+- [x] Milestone M4: reminders and status (Req M1, Req M2). Weekly cycle run once against live FPL with messages printed; not yet tried in real Telegram
 
 ## P0 requirements
 
@@ -22,8 +22,8 @@
 - [ ] P2: optional Ethiopia relay. Deferred with P1
 - [x] P3: screenshots that can't be confirmed go to the coordinator, with Approve/Reject; shown in the group if they never pressed Start
 - [x] P6: screenshot payments in the group (when mentioned) and in private. `/settelebirr`, `/markpaid`, `/markunpaid`. PRD asks for 9 of 10 real samples read correctly; measured on too few so far
-- [ ] Req M1: reminders before payment close
-- [ ] Req M2: `/status` and `/table`
+- [x] Req M1: seven rounds in the group (@mention) and by private message, unpaid members only, plus a participants post at the deadline
+- [x] Req M2: `/status` and `/table`. The table subtracts hits and shows manual corrections, with FPL data cached for 5 minutes
 - [x] O1: many leagues in one install. Two leagues in one database tested together
 
 ## Rule decisions
@@ -61,6 +61,15 @@ Chosen by Claude for screenshots, not yet confirmed by the owner:
 - A payment for a fee that's already covered moves on as credit toward the next one.
 - An unpaid member who posts a photo with no mention gets one reminder per gameweek.
 - The AI reads at most 100 screenshots per league per 24 hours; after that they go to the coordinator.
+
+Chosen by Claude for reminders, not yet confirmed by the owner:
+
+- Someone with a payment waiting on the coordinator isn't reminded.
+- After downtime, only the latest round is sent, not the ones missed.
+- The participants post also lists anyone still waiting on the coordinator, and the pot.
+- A private reminder that fails, usually because the person never pressed Start, isn't retried. They still get the group mention.
+
+Known gap until L4 (hourly re-sync, P1): the member list is read once at `/setup`, so someone joining or leaving the FPL league later isn't noticed. League 1680179 went from 11 to 10 managers on 2026-11-05, while this was being built; the 11-manager fixture is a snapshot.
 
 Locked by real data (league 1680179, 11 managers, 7 real hits):
 

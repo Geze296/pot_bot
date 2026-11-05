@@ -4,6 +4,9 @@ import { ALICE, clearDatabase, createHarness, GROUP_ID, LEAGUE_ID, OWNER } from 
 const harness = createHarness();
 const { db, world, posts } = harness;
 
+/** Reminders and deadline messages have their own tests. */
+const settlePosts = () => posts.filter((post) => /results are final|still need your review/.test(post.text));
+
 const GW10_DEADLINE = new Date("2026-11-06T18:30:00Z");
 const GW11_DEADLINE = new Date("2026-11-21T11:00:00Z");
 const BEFORE_DEADLINE = new Date("2026-11-05T12:00:00Z");
@@ -131,7 +134,7 @@ describe("settling (hard rule 4)", () => {
     await settle();
 
     expect(await db.result.count()).toBe(0);
-    expect(posts).toEqual([]);
+    expect(settlePosts()).toEqual([]);
   });
 
   it("won't settle before leagues are updated", async () => {
@@ -151,14 +154,14 @@ describe("settling (hard rule 4)", () => {
 
     await harness.tick(new Date(AFTER_MATCHES.getTime() + HOUR));
     expect(await db.result.count()).toBe(1);
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.chatId).toBe(BigInt(GROUP_ID));
-    expect(posts[0]?.text).toContain("GW10 results are final");
-    expect(posts[0]?.text).toContain("Winner: Yabets M");
-    expect(posts[0]?.text).toContain("Runner-up: KB Gselassie");
-    expect(posts[0]?.text).toContain("Pot: 1000 birr");
-    expect(posts[0]?.text).toContain("Yabets M gets 1000 birr");
-    expect(posts[0]?.text).toContain("Free pass for GW11: KB Gselassie");
+    expect(settlePosts()).toHaveLength(1);
+    expect(settlePosts()[0]?.chatId).toBe(BigInt(GROUP_ID));
+    expect(settlePosts()[0]?.text).toContain("GW10 results are final");
+    expect(settlePosts()[0]?.text).toContain("Winner: Yabets M");
+    expect(settlePosts()[0]?.text).toContain("Runner-up: KB Gselassie");
+    expect(settlePosts()[0]?.text).toContain("Pot: 1000 birr");
+    expect(settlePosts()[0]?.text).toContain("Yabets M gets 1000 birr");
+    expect(settlePosts()[0]?.text).toContain("Free pass for GW11: KB Gselassie");
   });
 
   it("running again doesn't settle or post twice", async () => {
@@ -169,7 +172,7 @@ describe("settling (hard rule 4)", () => {
     await harness.tick(after);
 
     expect(await db.result.count()).toBe(1);
-    expect(posts).toHaveLength(1);
+    expect(settlePosts()).toHaveLength(1);
     expect((await db.gameweek.findFirstOrThrow({ where: { fplEventId: 11 } })).carryIn).toBe(0);
   });
 
@@ -180,13 +183,13 @@ describe("settling (hard rule 4)", () => {
     harness.telegram.down = false;
 
     expect(await db.result.count()).toBe(1);
-    expect(posts).toEqual([]);
+    expect(settlePosts()).toEqual([]);
 
     const later = new Date(AFTER_MATCHES.getTime() + 2 * HOUR);
     await harness.tick(later);
     await harness.tick(later);
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.text).toContain("Winner: Yabets M");
+    expect(settlePosts()).toHaveLength(1);
+    expect(settlePosts()[0]?.text).toContain("Winner: Yabets M");
   });
 
   it("scores after hits, and records the snapshot", async () => {
@@ -205,7 +208,7 @@ describe("settling (hard rule 4)", () => {
     world.fail = true;
     await settle();
     expect(await db.result.count()).toBe(0);
-    expect(posts).toEqual([]);
+    expect(settlePosts()).toEqual([]);
 
     world.fail = false;
     await settle(new Date(AFTER_MATCHES.getTime() + 3 * HOUR));
@@ -241,7 +244,7 @@ describe("money", () => {
     ]);
     expect(result).toMatchObject({ payoutAmount: 999, carryOut: 1 });
     expect((await db.gameweek.findFirstOrThrow({ where: { fplEventId: 11 } })).carryIn).toBe(1);
-    expect(posts[0]?.text).toContain("1 birr rolls into the next pot");
+    expect(settlePosts()[0]?.text).toContain("1 birr rolls into the next pot");
   });
 
   it("an unpaid top scorer can't win or take the free pass, and the pot is smaller", async () => {
@@ -315,7 +318,7 @@ describe("money", () => {
 
     const gw11 = await db.gameweek.findFirstOrThrow({ where: { fplEventId: 11 } });
     expect(gw11.potAmount).toBe(100);
-    expect(posts[0]?.text).toContain("Winner: KB Gselassie");
+    expect(settlePosts()[0]?.text).toContain("Winner: KB Gselassie");
   });
 });
 
@@ -337,9 +340,9 @@ describe("payments still under review", () => {
     await harness.tick(new Date(AFTER_MATCHES.getTime() + 2 * HOUR));
 
     expect(await db.result.count()).toBe(0);
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.chatId).toBe(BigInt(OWNER.id));
-    expect(posts[0]?.text).toContain("still need your review");
+    expect(settlePosts()).toHaveLength(1);
+    expect(settlePosts()[0]?.chatId).toBe(BigInt(OWNER.id));
+    expect(settlePosts()[0]?.text).toContain("still need your review");
   });
 
   it("settles once the review is done", async () => {
@@ -572,6 +575,10 @@ describe("O1: two leagues in one database", () => {
     expect(resultFor(first!.id).payoutAmount).toBe(100);
     // Nobody paid in the second league except its free pass holder.
     expect(resultFor(second!.id).payoutAmount).toBe(0);
-    expect(posts.map((post) => post.chatId).sort()).toEqual([BigInt(OTHER_GROUP), BigInt(GROUP_ID)].sort());
+    expect(
+      settlePosts()
+        .map((post) => post.chatId)
+        .sort(),
+    ).toEqual([BigInt(OTHER_GROUP), BigInt(GROUP_ID)].sort());
   });
 });
