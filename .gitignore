@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# Secrets (hard rule 11)
+.env
+.env.*
+!.env.example
+
+# Generated Prisma client
+packages/db/src/generated/
+
+# Starter bundle, duplicates files already in the repo
+pot-bot-starter.zip

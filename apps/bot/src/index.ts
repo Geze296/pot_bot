@@ -1,0 +1,38 @@
+import { createDb } from "@potbot/db";
+import { createApi } from "./api/server.js";
+import { createBot } from "./bot.js";
+import { loadConfig } from "./config.js";
+import { startJobs } from "./jobs/boss.js";
+
+async function main(): Promise<void> {
+  const config = loadConfig(process.env);
+
+  const db = createDb(config.databaseUrl);
+  const boss = await startJobs(config.databaseUrl);
+  const api = createApi({
+    checkDb: async () => {
+      await db.$queryRaw`SELECT 1`;
+    },
+  });
+  await api.listen({ port: config.apiPort, host: "127.0.0.1" });
+  console.log(`API listening on http://127.0.0.1:${config.apiPort}`);
+
+  const bot = createBot(config.botToken);
+
+  const shutdown = async () => {
+    await bot.stop();
+    await api.close();
+    await boss.stop();
+    await db.$disconnect();
+  };
+  process.once("SIGINT", () => void shutdown());
+  process.once("SIGTERM", () => void shutdown());
+
+  // Long polling for now. Resolves when the bot stops, and rejects on a bad token.
+  await bot.start({ onStart: (me) => console.log(`Bot running as @${me.username}`) });
+}
+
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+});

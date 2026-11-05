@@ -1,0 +1,281 @@
+// Pot Bot data model. See docs/SPEC.md, "Data model".
+// Money is integer birr (hard rule 1). All times are UTC (timestamptz).
+// All league data hangs off `leagues`, so one install can serve many groups (PRD O1).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MemberRole {
+  owner
+  coordinator
+  member
+
+  @@map("member_role")
+}
+
+enum MemberStatus {
+  active
+  paused
+  left
+
+  @@map("member_status")
+}
+
+enum GameweekStatus {
+  open
+  locked
+  live
+  finished
+  settled
+
+  @@map("gameweek_status")
+}
+
+enum ObligationReason {
+  entry
+  free_pass
+  late_fee
+
+  @@map("obligation_reason")
+}
+
+enum ObligationStatus {
+  due
+  paid
+  waived
+
+  @@map("obligation_status")
+}
+
+enum PaymentMethod {
+  screenshot
+  sms
+  id
+  manual
+
+  @@map("payment_method")
+}
+
+enum VerifyStatus {
+  pending
+  verified
+  needs_review
+  rejected
+
+  @@map("verify_status")
+}
+
+enum Source {
+  fpl
+  manual
+
+  @@map("source")
+}
+
+enum FactSource {
+  admin
+  ai
+  fpl
+
+  @@map("fact_source")
+}
+
+model League {
+  id                       Int      @id @default(autoincrement())
+  name                     String
+  telegramChatId           BigInt   @unique @map("telegram_chat_id")
+  fplLeagueId              Int      @map("fpl_league_id")
+  firstPotGw               Int?     @map("first_pot_gw")
+  coordinatorTelebirrName  String?  @map("coordinator_telebirr_name")
+  coordinatorTelebirrPhone String?  @map("coordinator_telebirr_phone")
+  rules                    Json
+  persona                  Json
+  timezone                 String   @default("Africa/Addis_Ababa")
+  setupState               String   @default("pending") @map("setup_state") // /setup wizard progress
+  joinToken                String   @unique @map("join_token") // deep link for claiming a team
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  members     Member[]
+  gameweeks   Gameweek[]
+  messageLogs MessageLog[]
+  auditLogs   AuditLog[]
+
+  @@map("leagues")
+}
+
+model User {
+  id          Int    @id @default(autoincrement())
+  telegramId  BigInt @unique @map("telegram_id")
+  displayName String @map("display_name")
+  language    String @default("en")
+
+  members Member[]
+
+  @@map("users")
+}
+
+model Member {
+  id             Int          @id @default(autoincrement())
+  leagueId       Int          @map("league_id")
+  userId         Int?         @map("user_id") // null until the manager claims their team
+  fplEntryId     Int          @map("fpl_entry_id")
+  fplTeamName    String       @map("fpl_team_name")
+  fplManagerName String       @map("fpl_manager_name")
+  role           MemberRole   @default(member)
+  status         MemberStatus @default(active)
+  roastOptOut    Boolean      @default(false) @map("roast_opt_out")
+
+  league      League       @relation(fields: [leagueId], references: [id])
+  user        User?        @relation(fields: [userId], references: [id])
+  obligations Obligation[]
+  scores      Score[]
+  facts       MemberFact[]
+
+  @@unique([leagueId, fplEntryId]) // a team belongs to one member row per league
+  @@unique([leagueId, userId]) // a person claims one team per league; nulls stay distinct
+  @@index([userId])
+  @@map("members")
+}
+
+model Gameweek {
+  id              Int            @id @default(autoincrement())
+  leagueId        Int            @map("league_id")
+  fplEventId      Int            @map("fpl_event_id")
+  deadlineAt      DateTime       @map("deadline_at") @db.Timestamptz(3)
+  paymentOpensAt  DateTime       @map("payment_opens_at") @db.Timestamptz(3) // previous gameweek's deadline
+  paymentClosesAt DateTime       @map("payment_closes_at") @db.Timestamptz(3)
+  status          GameweekStatus @default(open)
+  potAmount       Int            @default(0) @map("pot_amount")
+  carryIn         Int            @default(0) @map("carry_in") // leftover birr rolled in from an uneven tie
+
+  league      League       @relation(fields: [leagueId], references: [id])
+  obligations Obligation[]
+  scores      Score[]
+  result      Result?
+
+  @@unique([leagueId, fplEventId])
+  @@map("gameweeks")
+}
+
+model Obligation {
+  id         Int              @id @default(autoincrement())
+  gameweekId Int              @map("gameweek_id")
+  memberId   Int              @map("member_id")
+  amountDue  Int              @map("amount_due")
+  reason     ObligationReason
+  status     ObligationStatus @default(due)
+
+  gameweek Gameweek  @relation(fields: [gameweekId], references: [id])
+  member   Member    @relation(fields: [memberId], references: [id])
+  payments Payment[]
+
+  @@unique([gameweekId, memberId, reason])
+  @@index([memberId])
+  @@map("obligations")
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  obligationId  Int           @map("obligation_id")
+  txnId         String?       @unique @map("txn_id") // unique across all leagues (hard rule 6); null only for manual cash
+  amount        Int
+  paidAt        DateTime?     @map("paid_at") @db.Timestamptz(3)
+  payerName     String?       @map("payer_name")
+  receiverMatch Boolean?      @map("receiver_match")
+  payerMatch    Boolean?      @map("payer_match") // warning only: people pay for friends
+  method        PaymentMethod
+  verifyStatus  VerifyStatus  @default(pending) @map("verify_status")
+  verifyReason  String?       @map("verify_reason")
+  reviewedBy    Int?          @map("reviewed_by")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  obligation Obligation @relation(fields: [obligationId], references: [id])
+
+  @@index([obligationId])
+  @@index([verifyStatus])
+  @@map("payments")
+}
+
+model Score {
+  id            Int    @id @default(autoincrement())
+  gameweekId    Int    @map("gameweek_id")
+  memberId      Int    @map("member_id")
+  points        Int
+  transferCost  Int    @map("transfer_cost")
+  benchPoints   Int    @map("bench_points")
+  captainPoints Int?   @map("captain_points")
+  rankInGw      Int?   @map("rank_in_gw")
+  source        Source @default(fpl)
+
+  gameweek Gameweek @relation(fields: [gameweekId], references: [id])
+  member   Member   @relation(fields: [memberId], references: [id])
+
+  @@unique([gameweekId, memberId])
+  @@index([memberId])
+  @@map("scores")
+}
+
+model Result {
+  id                Int       @id @default(autoincrement())
+  gameweekId        Int       @unique @map("gameweek_id") // the guard against settling twice
+  winnerMemberIds   Int[]     @map("winner_member_ids")
+  runnerUpMemberIds Int[]     @map("runner_up_member_ids")
+  payoutAmount      Int       @map("payout_amount")
+  carryOut          Int       @default(0) @map("carry_out") // leftover birr rolled into the next pot
+  source            Source    @default(fpl) // a manual result wins over FPL data (hard rule 8)
+  payoutTxnId       String?   @map("payout_txn_id")
+  paidOutAt         DateTime? @map("paid_out_at") @db.Timestamptz(3)
+
+  gameweek Gameweek @relation(fields: [gameweekId], references: [id])
+
+  @@map("results")
+}
+
+model MemberFact {
+  id        Int        @id @default(autoincrement())
+  memberId  Int        @map("member_id")
+  fact      String
+  source    FactSource
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@index([memberId])
+  @@map("member_facts")
+}
+
+model MessageLog {
+  id        Int      @id @default(autoincrement())
+  leagueId  Int      @map("league_id")
+  dedupeKey String   @map("dedupe_key") // e.g. reminder:gw12:24h:member5
+  kind      String
+  sentAt    DateTime @default(now()) @map("sent_at") @db.Timestamptz(3)
+
+  league League @relation(fields: [leagueId], references: [id])
+
+  @@unique([leagueId, dedupeKey]) // jobs cannot post twice (hard rule 7)
+  @@map("messages_log")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  leagueId  Int      @map("league_id")
+  actorId   Int      @map("actor_id")
+  action    String
+  entity    String
+  entityId  Int      @map("entity_id")
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  league League @relation(fields: [leagueId], references: [id])
+
+  @@index([leagueId, createdAt])
+  @@map("audit_log")
+}
