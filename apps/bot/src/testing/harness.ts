@@ -132,6 +132,8 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
   });
   const reader = { reading: undefined as ScreenshotReading | undefined, fails: false, calls: 0 };
   const clock = { now: new Date("2026-11-05T12:00:00Z") };
+  const deletions: { chatId: number; messageId: number }[] = [];
+  const deletionsFail = { value: false };
   const bot = createBot(
     "test-token",
     {
@@ -144,6 +146,10 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
       },
       downloadFile: async () => ({ bytes: new Uint8Array([1]), mimeType: "image/jpeg" }),
       now: () => clock.now,
+      scheduleDeletion: async (chatId, messageId) => {
+        if (deletionsFail.value) throw new Error("The queue is down");
+        deletions.push({ chatId, messageId });
+      },
     },
     { botInfo },
   );
@@ -168,6 +174,7 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
       const status = groupMembership.statuses.get(userId) ?? options.chatMemberStatus ?? "administrator";
       return { ok: true, result: { status, ...groupMembership.extra } } as never;
     }
+    if (method === "sendMessage") return { ok: true, result: { message_id: ++updateId } } as never;
     return { ok: true, result: true } as never;
   });
 
@@ -203,6 +210,8 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     world,
     posts,
     telegram,
+    deletions,
+    deletionsFail,
     reader,
     clock,
     blockedChats,

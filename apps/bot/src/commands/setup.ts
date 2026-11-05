@@ -85,7 +85,9 @@ export function setupCommands({ db, fpl }: BotDeps): Composer<Context> {
         }),
       )
       .join("\n");
-    return ctx.reply(
+    // Sent directly so it stays: unlike other replies, these are needed for longer than 10 minutes.
+    return ctx.api.sendMessage(
+      ctx.chat.id,
       t(language, "setup.preview", { name: standings.league.name, count: standings.managers.length, managers }),
       {
         reply_markup: new InlineKeyboard()
@@ -176,7 +178,7 @@ export function setupCommands({ db, fpl }: BotDeps): Composer<Context> {
     }
     await ctx.editMessageText(lines.join("\n"));
 
-    await ctx.reply(t(language, "setup.joinPrompt"), {
+    await ctx.api.sendMessage(ctx.chat!.id, t(language, "setup.joinPrompt"), {
       reply_markup: new InlineKeyboard().url(
         t(language, "setup.joinButton"),
         `https://t.me/${ctx.me.username}?start=join_${league.joinToken}`,

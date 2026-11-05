@@ -32,6 +32,11 @@
 
 - [x] O2: one-command self-hosting. `docker compose up -d --build` runs the database and bot, applying migrations on start. Checked in the container up to Telegram login; not yet run with a real token. The Mini App joins it with A1. Webhook mode isn't built, so it uses long polling
 
+## Added at the owner's request
+
+- [x] `/help`, in the group and in private, explaining what to do and every command
+- [x] The bot's replies in a group are deleted after 10 minutes. Results, reminders, the deadline list, "X paid", corrected results, claim announcements, setup messages and review cards stay (Claude's reading of the request, not yet confirmed by the owner)
+
 ## Rule decisions
 
 Confirmed by the owner:

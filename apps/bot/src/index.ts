@@ -5,7 +5,7 @@ import type { Bot } from "grammy";
 import { createApi } from "./api/server.js";
 import { createBot } from "./bot.js";
 import { loadConfig } from "./config.js";
-import { startJobs } from "./jobs/boss.js";
+import { scheduleMessageDeletion, startJobs } from "./jobs/boss.js";
 import { syncAllLeagues } from "./services/league-sync.js";
 import { tickAllLeagues } from "./services/settlement.js";
 import { downloadTelegramFile } from "./services/telegram-files.js";
@@ -20,6 +20,7 @@ async function main(): Promise<void> {
     fpl,
     ...(config.geminiApiKey ? { readScreenshot: createScreenshotReader({ apiKey: config.geminiApiKey }) } : {}),
     downloadFile: (fileId) => downloadTelegramFile(bot.api, config.botToken, fileId),
+    scheduleDeletion: (chatId, messageId) => scheduleMessageDeletion(boss, chatId, messageId),
   });
   const send = (chatId: bigint, text: string, options?: { parse_mode: "HTML" }) =>
     bot.api.sendMessage(Number(chatId), text, options);
@@ -28,6 +29,7 @@ async function main(): Promise<void> {
   const boss = await startJobs(config.databaseUrl, {
     tick: () => tickAllLeagues({ db, fpl, send }, new Date()),
     sync: () => syncAllLeagues({ db, fpl, send, botUsername: bot.botInfo.username }),
+    deleteMessage: (chatId, messageId) => bot.api.deleteMessage(chatId, messageId),
   });
   const api = createApi({
     checkDb: async () => {
