@@ -30,6 +30,7 @@ pnpm dev                       # bot + api + web
 pnpm test                      # vitest, all packages (needs the db running; uses its own schema)
 pnpm lint && pnpm typecheck
 node scripts/check-league.mjs <leagueId|leagueUrl> [firstPotGw]   # sanity-check real FPL data
+docker compose up -d --build   # run everything on a server, using a filled .env
 ```
 
 ## Domain words

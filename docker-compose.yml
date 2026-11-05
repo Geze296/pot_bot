@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: potbot
-      POSTGRES_PASSWORD: potbot # local development only
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-potbot}
       POSTGRES_DB: potbot
     ports:
       - "127.0.0.1:${DB_PORT:-5433}:5432"
@@ -17,6 +17,30 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  bot:
+    build: .
+    restart: unless-stopped
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # Inside Docker the database is reached by its service name, whatever .env says for local development.
+      DATABASE_URL: postgresql://potbot:${POSTGRES_PASSWORD:-potbot}@db:5432/potbot
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:' + (process.env.API_PORT || 3000) + '/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
 volumes:
   db-data:

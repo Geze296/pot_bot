@@ -1,0 +1,13 @@
+.git
+.github
+.vscode
+.env
+.env.*
+node_modules
+**/node_modules
+**/dist
+packages/db/src/generated
+fixtures
+docs
+*.md
+pot-bot-starter.zip

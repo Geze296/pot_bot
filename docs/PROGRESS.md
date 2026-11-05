@@ -30,6 +30,8 @@
 
 - [x] L4: hourly re-sync. Joiners are added and charged, leavers are flagged and stop being charged, name changes are picked up, and the group is told about joins and leaves
 
+- [x] O2: one-command self-hosting. `docker compose up -d --build` runs the database and bot, applying migrations on start. Checked in the container up to Telegram login; not yet run with a real token. The Mini App joins it with A1. Webhook mode isn't built, so it uses long polling
+
 ## Rule decisions
 
 Confirmed by the owner:
