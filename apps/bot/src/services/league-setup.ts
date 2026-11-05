@@ -5,7 +5,6 @@ import type { FplClient, FplEntryHistory, FplEvent, LeagueStandings } from "@pot
 
 export const SETUP_STATE = {
   awaitingConfirm: "awaiting_confirm",
-  awaitingFirstGw: "awaiting_first_gw",
   backfilling: "backfilling",
   active: "active",
 } as const;
@@ -13,7 +12,7 @@ export const SETUP_STATE = {
 /** Creates or replaces the unconfirmed league for a group. An active league is never replaced. */
 export async function prepareLeague(
   db: PrismaClient,
-  input: { chatId: number; ownerUserId: number; standings: LeagueStandings },
+  input: { chatId: number; ownerUserId: number; standings: LeagueStandings; firstPotGw: number | null },
 ): Promise<League> {
   const { league: fplLeague, managers } = input.standings;
   const telegramChatId = BigInt(input.chatId);
@@ -31,6 +30,7 @@ export async function prepareLeague(
         telegramChatId,
         fplLeagueId: fplLeague.id,
         ownerUserId: input.ownerUserId,
+        firstPotGw: input.firstPotGw,
         rules: { ...DEFAULT_RULES },
         persona: {},
         setupState: SETUP_STATE.awaitingConfirm,

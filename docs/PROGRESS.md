@@ -35,16 +35,17 @@ Confirmed by the owner:
 - A member who misses the deadline has their obligation waived: they owe nothing, can't win, and the pot is smaller.
 - A member who pays early and then earns a free pass keeps the payment as a credit toward their next entry fee. It isn't counted in that gameweek's pot.
 - Unpaid members are reminded both in the group (@mention) and by private message: once with 2 days left, twice with 1 day left, four times on deadline day. At the deadline the group gets a list of who is participating.
-- Our league: FPL classic league 1680179 ("Office", 11 managers). The bot's first pot gameweek is GW10.
-- GW1-9 are ignored completely: no past results or money in the bot.
-- The GW9 runner-up (Ephrem T, 67) gets a free pass for GW10, so the GW10 pot is 10 x 100 = 1,000 birr.
+- Our league: FPL classic league 1680179 ("Office", 11 managers). On going live, the bot starts at whichever gameweek is next.
+- Gameweeks before that are ignored completely: no past results or money in the bot.
+- The runner-up of the gameweek before the start gets a free pass for the first one.
+- If a screenshot can't be read, it goes to the coordinator's private chat with Approve/Reject buttons, and an approved payment is then shown in the group. Settling waits if one sent before the deadline is still open.
 - Telebirr receipt-page verification is off for now. Payment is checked from the screenshot instead (see below).
 - A screenshot dated after the deadline is rejected for this gameweek and counts toward the next one.
 
 Screenshot payments (replaces `/paid` receipt checks for now; moves P4 into Milestone M3):
 
 - A photo counts only if it is a Telebirr screenshot showing a transaction reference, sender name and receiver name, and the receiver matches the name the admin provides. Any other image is not considered.
-- This applies in the group and in private chat with the bot.
+- In the group, a photo is checked only when the bot is @mentioned, in the caption or in a reply to the photo. This keeps AI costs down. Every photo sent privately to the bot is checked.
 - When a member sends it privately, after the check the bot tells the group that the member paid and shows the screenshot.
 - A transaction reference can be used only once (hard rule 6).
 
@@ -57,6 +58,3 @@ Chosen by Claude to fit the agreed behaviour, not yet confirmed by the owner:
 
 - Exact reminder times, counted back from the deadline: 48h; 24h and 18h; 6h, 3h, 1h and 15m.
 
-Still open (must be settled before Milestone M2):
-
-- Reading a screenshot can fail, for example if the AI service is down. Recommended: it goes to the coordinator with Approve/Reject buttons, and settling waits if one sent before the deadline is still open.

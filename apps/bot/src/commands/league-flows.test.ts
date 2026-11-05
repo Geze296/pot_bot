@@ -10,10 +10,9 @@ beforeEach(async () => {
 });
 afterAll(() => db.$disconnect());
 
-async function linkLeague(firstPotGw: number) {
-  await harness.say(OWNER, GROUP_ID, `/setup ${LEAGUE_ID}`);
+async function linkLeague(firstPotGw?: number) {
+  await harness.say(OWNER, GROUP_ID, `/setup ${LEAGUE_ID}${firstPotGw ? ` ${firstPotGw}` : ""}`);
   await harness.tap(OWNER, GROUP_ID, "setup:confirm");
-  await harness.tap(OWNER, GROUP_ID, `setup:gw:${firstPotGw}`);
 }
 
 const memberByManager = (name: string) => db.member.findFirstOrThrow({ where: { fplManagerName: name } });
@@ -92,20 +91,15 @@ describe("L1: /setup links a group to a classic league", () => {
 });
 
 describe("first pot gameweek", () => {
-  it("offers GW1 to the next gameweek", async () => {
-    await harness.say(OWNER, GROUP_ID, `/setup ${LEAGUE_ID}`);
-    await harness.tap(OWNER, GROUP_ID, "setup:confirm");
+  it("refuses a first gameweek outside the league's range", async () => {
+    await harness.say(OWNER, GROUP_ID, `/setup ${LEAGUE_ID} 11`);
 
-    const buttons = harness
-      .lastKeyboard()
-      .flat()
-      .map((button) => button.text);
-    expect(buttons[0]).toBe("GW1");
-    expect(buttons.at(-1)).toBe("GW10");
+    expect(harness.takeTexts()[0]).toContain("between GW1 and GW10");
+    expect(await db.league.count()).toBe(0);
   });
 
-  it("our league: GW10 start records no past results, and seeds the GW9 runner-up's free pass", async () => {
-    await linkLeague(10);
+  it("starts at the next gameweek by itself, records no past results, and seeds the previous runner-up's free pass", async () => {
+    await linkLeague();
 
     const league = await db.league.findFirstOrThrow();
     const ephrem = await memberByManager("Ephrem T");
@@ -141,9 +135,8 @@ describe("first pot gameweek", () => {
   it("a double tap doesn't run setup twice", async () => {
     await harness.say(OWNER, GROUP_ID, `/setup ${LEAGUE_ID}`);
     await harness.tap(OWNER, GROUP_ID, "setup:confirm");
-    await harness.tap(OWNER, GROUP_ID, "setup:gw:10");
     harness.takeTexts();
-    await harness.tap(OWNER, GROUP_ID, "setup:gw:10");
+    await harness.tap(OWNER, GROUP_ID, "setup:confirm");
 
     expect(harness.takeTexts()).toEqual([]);
   });
@@ -152,15 +145,14 @@ describe("first pot gameweek", () => {
     const failing = createHarness({ failHistories: true });
     await failing.say(OWNER, GROUP_ID, `/setup ${LEAGUE_ID}`);
     await failing.tap(OWNER, GROUP_ID, "setup:confirm");
-    await failing.tap(OWNER, GROUP_ID, "setup:gw:10");
 
     const league = await db.league.findFirstOrThrow();
-    expect(league.setupState).toBe("awaiting_first_gw");
+    expect(league.setupState).toBe("awaiting_confirm");
     expect(await db.gameweek.count()).toBe(0);
     expect(failing.takeTexts().join("\n")).toContain("can't reach FPL");
     await failing.db.$disconnect();
 
-    await harness.tap(OWNER, GROUP_ID, "setup:gw:10");
+    await harness.tap(OWNER, GROUP_ID, "setup:confirm");
     expect((await db.league.findFirstOrThrow()).setupState).toBe("active");
   });
 });
