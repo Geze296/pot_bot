@@ -11,6 +11,8 @@ export default function setup(): void {
   } catch (error) {
     const detail =
       error instanceof Error && "stdout" in error ? `${String(error.stdout)}${String(error.stderr)}` : String(error);
-    throw new Error(`Couldn't prepare the test database. Is it running? Try: docker compose up -d db\n${detail}`);
+    throw new Error(`Couldn't prepare the test database. Is it running? Try: docker compose up -d db\n${detail}`, {
+      cause: error,
+    });
   }
 }
