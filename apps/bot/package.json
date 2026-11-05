@@ -9,9 +9,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@potbot/ai": "workspace:*",
     "@potbot/core": "workspace:*",
     "@potbot/db": "workspace:*",
     "@potbot/fpl": "workspace:*",
+    "@potbot/payments": "workspace:*",
     "fastify": "5.12.8",
     "grammy": "1.46.0",
     "pg-boss": "12.38.0"

@@ -38,6 +38,9 @@ importers:
 
   apps/bot:
     dependencies:
+      '@potbot/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@potbot/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -47,6 +50,9 @@ importers:
       '@potbot/fpl':
         specifier: workspace:*
         version: link:../../packages/fpl
+      '@potbot/payments':
+        specifier: workspace:*
+        version: link:../../packages/payments
       fastify:
         specifier: 5.12.8
         version: 5.12.8
@@ -98,7 +104,11 @@ importers:
 
   packages/fpl: {}
 
-  packages/payments: {}
+  packages/payments:
+    dependencies:
+      '@potbot/ai':
+        specifier: workspace:*
+        version: link:../ai
 
 packages:
 

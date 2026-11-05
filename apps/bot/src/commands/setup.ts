@@ -1,24 +1,13 @@
 import { Composer, InlineKeyboard, type Context } from "grammy";
 import { FplNotFoundError, parseLeagueInput } from "@potbot/fpl";
 import type { League, Member } from "@potbot/db";
+import { formatLocalTime } from "../i18n/format.js";
 import { t, toLanguage, type Language } from "../i18n/index.js";
 import { backfillSeason, cancelLeague, prepareLeague, SETUP_STATE, type SeasonWeek } from "../services/league-setup.js";
 import { ensureUser } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
 
 const languageOf = (ctx: Context): Language => toLanguage(ctx.from?.language_code);
-
-function formatDeadline(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(iso));
-}
 
 function seasonLines(language: Language, season: SeasonWeek[], members: Member[]): string[] {
   const names = (ids: number[]) =>
@@ -181,7 +170,7 @@ export function setupCommands({ db, fpl }: BotDeps): Composer<Context> {
       lines.push(
         t(language, "setup.nextDeadline", {
           gw: upcoming.id,
-          deadline: formatDeadline(upcoming.deadline_time, league.timezone),
+          deadline: formatLocalTime(new Date(upcoming.deadline_time), league.timezone),
         }),
       );
     }

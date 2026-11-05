@@ -1,2 +1,2 @@
-// PaymentVerifier interface and the Telebirr implementation. Built in Milestone M3.
-export {};
+// Payment checks. Telebirr receipt-page verification (P1, P2) is deferred, see docs/PROGRESS.md.
+export * from "./screenshot-check.js";

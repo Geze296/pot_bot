@@ -26,7 +26,7 @@ export interface SettlementDeps {
 type Tx = Prisma.TransactionClient;
 
 /** Creates a gameweek's obligations for members who don't have one yet. Safe to run twice. */
-async function ensureObligations(tx: Tx, league: League, gameweek: Gameweek): Promise<void> {
+export async function ensureObligations(tx: Tx, league: League, gameweek: Gameweek): Promise<void> {
   const members = await tx.member.findMany({ where: { leagueId: league.id, status: "active" } });
   const existing = await tx.obligation.findMany({ where: { gameweekId: gameweek.id }, select: { memberId: true } });
   const missing = members.map((member) => member.id).filter((id) => !existing.some((row) => row.memberId === id));

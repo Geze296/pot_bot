@@ -7,7 +7,7 @@
 - [x] Milestone M0: skeleton. Monorepo, Postgres on host port 5433, first migration, `/start` covered by a stubbed test (not yet tried with a real token)
 - [x] Milestone M1: FPL and league import (L1, L2, L3). Tested with real fixtures and stubbed Telegram; not yet tried in a real group
 - [x] Milestone M2: rules and settling (R1, R2, R3, O1). Tested with real fixtures and a simulated GW10; not yet run on a real gameweek
-- [ ] Milestone M3: payments (P1, P2, P3)
+- [x] Milestone M3: payments (P3, P6; P1 and P2 deferred). Screenshot reading checked on real samples through live Gemini; the Telegram side is tested with a simulated Telegram
 - [ ] Milestone M4: reminders and status (Req M1, Req M2)
 
 ## P0 requirements
@@ -18,9 +18,10 @@
 - [x] R1: league rules are settings. `/rules`, `/setrule`. Not built because the docs don't define how they work: season-long fee, "double or nothing", double-fee gameweeks
 - [x] R2: automatic settling. A job every 15 minutes, after bonus, leagues updated and 1 hour of grace
 - [x] R3: owner or coordinator override. `/override score`, `/override winner`, `/coordinator`, all audited, with a corrected result message
-- [ ] P1: `/paid` verifies against the Telebirr receipt
-- [ ] P2: optional Ethiopia relay
-- [ ] P3: failed verifications go to the coordinator
+- [ ] P1: `/paid` verifies against the Telebirr receipt. Deferred at the owner's request; `/paid` now explains how to send a screenshot
+- [ ] P2: optional Ethiopia relay. Deferred with P1
+- [x] P3: screenshots that can't be confirmed go to the coordinator, with Approve/Reject; shown in the group if they never pressed Start
+- [x] P6: screenshot payments in the group (when mentioned) and in private. `/settelebirr`, `/markpaid`, `/markunpaid`. PRD asks for 9 of 10 real samples read correctly; measured on too few so far
 - [ ] Req M1: reminders before payment close
 - [ ] Req M2: `/status` and `/table`
 - [x] O1: many leagues in one install. Two leagues in one database tested together
@@ -51,6 +52,15 @@ Screenshot payments (replaces `/paid` receipt checks for now; moves P4 into Mile
 - In the group, a photo is checked only when the bot is @mentioned, in the caption or in a reply to the photo. This keeps AI costs down. Every photo sent privately to the bot is checked.
 - When a member sends it privately, after the check the bot tells the group that the member paid and shows the screenshot.
 - A transaction reference can be used only once (hard rule 6).
+
+Chosen by Claude for screenshots, not yet confirmed by the owner:
+
+- Only screenshots that can't be confirmed go to the coordinator. Clear ones pass automatically.
+- A receipt dated before any payment window goes to the coordinator, in case it's an old screenshot reused.
+- A screenshot dated before the deadline but sent after it still counts, until the gameweek settles.
+- A payment for a fee that's already covered moves on as credit toward the next one.
+- An unpaid member who posts a photo with no mention gets one reminder per gameweek.
+- The AI reads at most 100 screenshots per league per 24 hours; after that they go to the coordinator.
 
 Locked by real data (league 1680179, 11 managers, 7 real hits):
 

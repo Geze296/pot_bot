@@ -3,6 +3,7 @@ import type { BotDeps } from "./commands/deps.js";
 import { joinCommands } from "./commands/join.js";
 import { linkCommands } from "./commands/link.js";
 import { overrideCommands } from "./commands/override.js";
+import { paymentCommands } from "./commands/payments.js";
 import { rulesCommands } from "./commands/rules.js";
 import { setupCommands } from "./commands/setup.js";
 import { t, toLanguage } from "./i18n/index.js";
@@ -19,6 +20,9 @@ export function createBot(token: string, deps: BotDeps, config?: BotConfig<Conte
   bot.command("start", (ctx) =>
     ctx.reply(t(toLanguage(ctx.from?.language_code), "start.welcome", { name: ctx.from?.first_name ?? "" })),
   );
+
+  // Last, so it only sees messages no command has handled.
+  bot.use(paymentCommands(deps));
 
   // A failure handling one update must not stop the bot for everyone else.
   bot.catch((error) => console.error("Error handling update:", error.error));

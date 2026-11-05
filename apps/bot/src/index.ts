@@ -1,17 +1,25 @@
+import { createScreenshotReader } from "@potbot/ai";
 import { createDb } from "@potbot/db";
 import { createFplClient } from "@potbot/fpl";
+import type { Bot } from "grammy";
 import { createApi } from "./api/server.js";
 import { createBot } from "./bot.js";
 import { loadConfig } from "./config.js";
 import { startJobs } from "./jobs/boss.js";
 import { tickAllLeagues } from "./services/settlement.js";
+import { downloadTelegramFile } from "./services/telegram-files.js";
 
 async function main(): Promise<void> {
   const config = loadConfig(process.env);
 
   const db = createDb(config.databaseUrl);
   const fpl = createFplClient();
-  const bot = createBot(config.botToken, { db, fpl });
+  const bot: Bot = createBot(config.botToken, {
+    db,
+    fpl,
+    ...(config.geminiApiKey ? { readScreenshot: createScreenshotReader({ apiKey: config.geminiApiKey }) } : {}),
+    downloadFile: (fileId) => downloadTelegramFile(bot.api, config.botToken, fileId),
+  });
   const send = (chatId: bigint, text: string) => bot.api.sendMessage(Number(chatId), text);
   const boss = await startJobs(config.databaseUrl, () => tickAllLeagues({ db, fpl, send }, new Date()));
   const api = createApi({

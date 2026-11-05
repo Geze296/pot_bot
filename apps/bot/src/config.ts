@@ -2,6 +2,7 @@ export interface Config {
   botToken: string;
   databaseUrl: string;
   apiPort: number;
+  geminiApiKey?: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv): Config {
@@ -15,5 +16,10 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     throw new Error(`API_PORT must be a port number, got "${env.API_PORT}".`);
   }
 
-  return { botToken: env.BOT_TOKEN!, databaseUrl: env.DATABASE_URL!, apiPort };
+  return {
+    botToken: env.BOT_TOKEN!,
+    databaseUrl: env.DATABASE_URL!,
+    apiPort,
+    ...(env.GEMINI_API_KEY ? { geminiApiKey: env.GEMINI_API_KEY } : {}),
+  };
 }

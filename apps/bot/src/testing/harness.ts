@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { ScreenshotReadError, type ScreenshotReading } from "@potbot/ai";
 import { createDb, type PrismaClient } from "@potbot/db";
 import { createFplClient, type FplEntryHistory } from "@potbot/fpl";
 import type { Update, UserFromGetMe } from "grammy/types";
@@ -117,17 +118,37 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
   const db = createDb(TEST_DATABASE_URL);
   const world: FplWorld = {};
   // The clock jumps on every read, so the bootstrap cache never hides a change a test makes to the world.
-  let clock = 0;
+  let fplClock = 0;
   const fpl = createFplClient({
     fetch: fixtureFetch({ failHistories: options.failHistories ?? false, world }),
     sleep: async () => {},
-    now: () => (clock += 60 * 60 * 1000),
+    now: () => (fplClock += 60 * 60 * 1000),
   });
-  const bot = createBot("test-token", { db, fpl }, { botInfo });
+  const reader = { reading: undefined as ScreenshotReading | undefined, fails: false, calls: 0 };
+  const clock = { now: new Date("2026-11-05T12:00:00Z") };
+  const bot = createBot(
+    "test-token",
+    {
+      db,
+      fpl,
+      readScreenshot: async () => {
+        reader.calls += 1;
+        if (reader.fails || !reader.reading) throw new ScreenshotReadError("Gemini is down");
+        return reader.reading;
+      },
+      downloadFile: async () => ({ bytes: new Uint8Array([1]), mimeType: "image/jpeg" }),
+      now: () => clock.now,
+    },
+    { botInfo },
+  );
 
   const calls: SentCall[] = [];
+  /** Chats that haven't pressed Start, so private messages to them fail. */
+  const blockedChats = new Set<number>();
   // Replaces the network call, so tests never reach Telegram.
   bot.api.config.use(async (_prev, method, payload) => {
+    const chatId = (payload as { chat_id?: number }).chat_id;
+    if (chatId !== undefined && blockedChats.has(chatId)) throw new Error("Forbidden: bot can't initiate conversation");
     calls.push({ method, payload: payload as Record<string, unknown> });
     if (method === "getChatMember") {
       return { ok: true, result: { status: options.chatMemberStatus ?? "administrator" } } as never;
@@ -167,6 +188,30 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     world,
     posts,
     telegram,
+    reader,
+    clock,
+    blockedChats,
+    /** A photo message. Put "@pot_test_bot" in the caption to mention the bot. */
+    photo: (from: Person, chatId: number, options: { caption?: string; fileId?: string; messageId?: number } = {}) => {
+      const fileId = options.fileId ?? `file-${++updateId}`;
+      const caption = options.caption;
+      const offset = caption?.indexOf("@pot_test_bot") ?? -1;
+      return bot.handleUpdate({
+        update_id: ++updateId,
+        message: {
+          message_id: options.messageId ?? updateId,
+          date: 0,
+          chat:
+            chatId < 0
+              ? { id: chatId, type: "supergroup", title: "Office" }
+              : { id: chatId, type: "private", first_name: from.first_name },
+          from: { is_bot: false, ...from },
+          photo: [{ file_id: fileId, file_unique_id: `unique-${fileId}`, width: 1, height: 1 }],
+          ...(caption ? { caption } : {}),
+          ...(offset >= 0 ? { caption_entities: [{ type: "mention", offset, length: "@pot_test_bot".length }] } : {}),
+        },
+      } as Update);
+    },
     tick: (now: Date) => tickAllLeagues({ db, fpl, send }, now),
     /** Text of every message and edit sent since the last call. */
     takeTexts(): string[] {
@@ -183,7 +228,7 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     },
     say: (from: Person, chatId: number, text: string, extra?: object) =>
       bot.handleUpdate(message(from, chatId, text, extra)),
-    tap: (from: Person, chatId: number, data: string) =>
+    tap: (from: Person, chatId: number, data: string, callbackExtra: object = {}) =>
       bot.handleUpdate({
         update_id: ++updateId,
         callback_query: {
@@ -194,6 +239,7 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
           message: {
             message_id: 1,
             date: 0,
+            ...callbackExtra,
             chat:
               chatId < 0
                 ? { id: chatId, type: "supergroup", title: "Office" }
