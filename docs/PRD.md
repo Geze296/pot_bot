@@ -81,9 +81,10 @@ P0 is the first version our group uses. P1 follows within a few gameweeks, and P
 | R1 | League rules are settings: fee, prize split, runner-up perk, ties, net or gross score, late rule | Unit tests cover every option, including 2-way and 3-way ties for 1st and 2nd |
 | R2 | Automatic settling | Never settles before FPL says bonus is added and leagues are updated; results post within 90 minutes of that |
 | R3 | Owner or coordinator can override a score or winner | The override is logged and the group gets a "corrected result" message |
-| P1 | `/paid <transaction ID>` verifies against the Telebirr receipt page | A valid payment is verified in under 15 seconds; wrong receiver, short amount, out-of-window date, failed status or a reused ID are each rejected with the reason |
-| P2 | Optional Ethiopia relay for receipt fetches | Setting `RELAY_URL` and `RELAY_SECRET` routes every receipt fetch through the relay |
-| P3 | Payments that fail verification go to the coordinator | The coordinator gets a private message with Approve and Reject buttons; an unreachable receipt is never auto-rejected |
+| P1 | Deferred, see "Screenshot payments" below. `/paid <transaction ID>` verifies against the Telebirr receipt page | A valid payment is verified in under 15 seconds; wrong receiver, short amount, out-of-window date, failed status or a reused ID are each rejected with the reason |
+| P2 | Deferred with P1. Optional Ethiopia relay for receipt fetches | Setting `RELAY_URL` and `RELAY_SECRET` routes every receipt fetch through the relay |
+| P3 | Payments that can't be read go to the coordinator | The coordinator gets a private message with Approve and Reject buttons; a screenshot that couldn't be read because of a service failure is never auto-rejected |
+| P6 | Screenshot payments, in the group and in private chat | A Telebirr screenshot showing a transaction reference, sender and receiver, with the receiver matching the admin's name, marks the member paid. Any other image is not considered. A private screenshot is then announced and shown in the group. A reused reference is rejected. A screenshot dated after the deadline is rejected for this gameweek and counts toward the next |
 | M1 | Reminders before payment close, then a participants post | Seven rounds before the deadline: 48h; 24h and 18h; 6h, 3h, 1h and 15m. Each round sends a group message @mentioning every unpaid member and a private message to each of them, and goes only to members who haven't paid. At the deadline the group gets a message listing who is participating in this gameweek |
 | M2 | `/status` and `/table` | They show who paid, the pot, time to deadline, and live gameweek and overall tables |
 | O1 | Data model supports many leagues in one install | Two test leagues in one database never see each other's data |
@@ -92,7 +93,7 @@ P0 is the first version our group uses. P1 follows within a few gameweeks, and P
 
 | ID | Requirement | Done when |
 | --- | --- | --- |
-| P4 | Read the transaction ID from a screenshot or forwarded Telebirr SMS | Correct ID from at least 9 of 10 real sample screenshots; the image is deleted after processing |
+| P4 | Read the transaction ID from a forwarded Telebirr SMS (screenshots moved to P6) | Correct ID from at least 9 of 10 real sample screenshots; the image is deleted after processing |
 | P5 | Record the pot payout | Coordinator taps "Paid out" or sends the payout ID; group gets "pot delivered" |
 | F1 | Weekly awards (Wooden Spoon, Bench Boss, Captain Calamity, Hit Man, The Genius) | Computed from FPL data and posted with the results |
 | F2 | AI persona: weekly recap, sassy reminders, `/roast`, replies when mentioned | Daily cap per league enforced; template fallback with no AI key; `/nofun` respected |

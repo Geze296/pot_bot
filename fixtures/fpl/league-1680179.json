@@ -1,0 +1,140 @@
+{
+  "league": {
+    "admin_entry": 4161001,
+    "closed": false,
+    "code_privacy": "p",
+    "created": "2026-08-21T07:34:03.511497Z",
+    "cup_league": null,
+    "has_cup": true,
+    "id": 1680179,
+    "league_type": "x",
+    "max_entries": null,
+    "name": "Office",
+    "rank": null,
+    "scoring": "c",
+    "start_event": 1
+  },
+  "managers": [
+    {
+      "club_badge_src": null,
+      "entry": 7789411,
+      "entry_name": "Jazz",
+      "event_total": 75,
+      "last_rank": 1,
+      "player_name": "Yabets M",
+      "rank": 1,
+      "rank_sort": 1,
+      "total": 583
+    },
+    {
+      "club_badge_src": null,
+      "entry": 4161001,
+      "entry_name": "kings",
+      "event_total": 52,
+      "last_rank": 2,
+      "player_name": "KB Gselassie",
+      "rank": 2,
+      "rank_sort": 2,
+      "total": 556
+    },
+    {
+      "club_badge_src": null,
+      "entry": 3052815,
+      "entry_name": "Nat FC",
+      "event_total": 52,
+      "last_rank": 3,
+      "player_name": "Natnael Tessema",
+      "rank": 3,
+      "rank_sort": 3,
+      "total": 517
+    },
+    {
+      "club_badge_src": null,
+      "entry": 5364457,
+      "entry_name": "asrat",
+      "event_total": 57,
+      "last_rank": 4,
+      "player_name": "Asratemariyam aklilu",
+      "rank": 4,
+      "rank_sort": 4,
+      "total": 507
+    },
+    {
+      "club_badge_src": null,
+      "entry": 6866473,
+      "entry_name": "nati arse",
+      "event_total": 57,
+      "last_rank": 5,
+      "player_name": "Nati Zed",
+      "rank": 5,
+      "rank_sort": 5,
+      "total": 507
+    },
+    {
+      "club_badge_src": null,
+      "entry": 6646796,
+      "entry_name": "Geze�",
+      "event_total": 54,
+      "last_rank": 6,
+      "player_name": "Geze 29",
+      "rank": 6,
+      "rank_sort": 6,
+      "total": 502
+    },
+    {
+      "club_badge_src": null,
+      "entry": 7792534,
+      "entry_name": "Champ's Team",
+      "event_total": 45,
+      "last_rank": 7,
+      "player_name": "Natnael Malike",
+      "rank": 7,
+      "rank_sort": 7,
+      "total": 488
+    },
+    {
+      "club_badge_src": null,
+      "entry": 10426736,
+      "entry_name": "Team Attack",
+      "event_total": 50,
+      "last_rank": 8,
+      "player_name": "Yohannes Gossaye",
+      "rank": 8,
+      "rank_sort": 8,
+      "total": 370
+    },
+    {
+      "club_badge_src": "https://fantasy.premierleague.com/gcs/plfpl-production-adobe-approved/plfpl-production/10410646/f3a1ceb6-01a7-46a5-9683-eacb8f12e2a4.png",
+      "entry": 10410646,
+      "entry_name": "አካኪ ዘራፍ",
+      "event_total": 48,
+      "last_rank": 9,
+      "player_name": "kalkirstos asegid",
+      "rank": 9,
+      "rank_sort": 9,
+      "total": 357
+    },
+    {
+      "club_badge_src": null,
+      "entry": 11154015,
+      "entry_name": "Dave7",
+      "event_total": 50,
+      "last_rank": 10,
+      "player_name": "Dawit Tewodros",
+      "rank": 10,
+      "rank_sort": 10,
+      "total": 81
+    },
+    {
+      "club_badge_src": null,
+      "entry": 11201236,
+      "entry_name": "Ephrem",
+      "event_total": 67,
+      "last_rank": 0,
+      "player_name": "Ephrem T",
+      "rank": 11,
+      "rank_sort": 11,
+      "total": 67
+    }
+  ]
+}
