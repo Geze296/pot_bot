@@ -6,6 +6,7 @@ import { createApi } from "./api/server.js";
 import { createBot } from "./bot.js";
 import { loadConfig } from "./config.js";
 import { startJobs } from "./jobs/boss.js";
+import { syncAllLeagues } from "./services/league-sync.js";
 import { tickAllLeagues } from "./services/settlement.js";
 import { downloadTelegramFile } from "./services/telegram-files.js";
 
@@ -22,7 +23,12 @@ async function main(): Promise<void> {
   });
   const send = (chatId: bigint, text: string, options?: { parse_mode: "HTML" }) =>
     bot.api.sendMessage(Number(chatId), text, options);
-  const boss = await startJobs(config.databaseUrl, () => tickAllLeagues({ db, fpl, send }, new Date()));
+  // Fails here on a bad token, before anything starts. It also gives the username for claim links.
+  await bot.init();
+  const boss = await startJobs(config.databaseUrl, {
+    tick: () => tickAllLeagues({ db, fpl, send }, new Date()),
+    sync: () => syncAllLeagues({ db, fpl, send, botUsername: bot.botInfo.username }),
+  });
   const api = createApi({
     checkDb: async () => {
       await db.$queryRaw`SELECT 1`;

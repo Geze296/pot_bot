@@ -4,6 +4,7 @@ import { createDb, type PrismaClient } from "@potbot/db";
 import { createFplClient, type FplEntryHistory } from "@potbot/fpl";
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createBot } from "../bot.js";
+import { syncAllLeagues } from "../services/league-sync.js";
 import { tickAllLeagues } from "../services/settlement.js";
 import { TEST_DATABASE_URL, TEST_SCHEMA } from "./database-url.js";
 
@@ -37,7 +38,11 @@ export interface FplWorld {
   /** Extra history rows, by gameweek then FPL team ID. Teams left out score 30. */
   scores?: Record<number, Record<number, { points: number; cost?: number; total?: number }>>;
   fail?: boolean;
+  /** Replaces the league's member list, as FPL's standings rows. */
+  managers?: unknown[];
 }
+
+export const fixtureManagers = (): unknown[] => fixture<{ managers: unknown[] }>(`league-${LEAGUE_ID}.json`).managers;
 
 interface BootstrapFixture {
   events: { id: number; finished: boolean; data_checked: boolean; is_current: boolean; is_next: boolean }[];
@@ -71,7 +76,7 @@ export function fixtureFetch(options: { failHistories?: boolean; world?: FplWorl
     if (path === `leagues-classic/${LEAGUE_ID}/standings/`) {
       return json({
         league,
-        standings: { has_next: false, results: managers },
+        standings: { has_next: false, results: world.managers ?? managers },
         new_entries: { has_next: false, results: [] },
       });
     }
@@ -224,6 +229,7 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
       } as Update);
     },
     tick: (now: Date) => tickAllLeagues({ db, fpl, send }, now),
+    sync: () => syncAllLeagues({ db, fpl, send, botUsername: botInfo.username }),
     /** Text of every message and edit sent since the last call. */
     takeTexts(): string[] {
       const texts = calls

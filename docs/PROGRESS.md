@@ -26,6 +26,10 @@
 - [x] Req M2: `/status` and `/table`. The table subtracts hits and shows manual corrections, with FPL data cached for 5 minutes
 - [x] O1: many leagues in one install. Two leagues in one database tested together
 
+## P1 requirements
+
+- [x] L4: hourly re-sync. Joiners are added and charged, leavers are flagged and stop being charged, name changes are picked up, and the group is told about joins and leaves
+
 ## Rule decisions
 
 Confirmed by the owner:
@@ -69,7 +73,12 @@ Chosen by Claude for reminders, not yet confirmed by the owner:
 - The participants post also lists anyone still waiting on the coordinator, and the pot.
 - A private reminder that fails, usually because the person never pressed Start, isn't retried. They still get the group mention.
 
-Known gap until L4 (hourly re-sync, P1): the member list is read once at `/setup`, so someone joining or leaving the FPL league later isn't noticed. League 1680179 went from 11 to 10 managers on 2026-11-05, while this was being built; the 11-manager fixture is a snapshot.
+Chosen by Claude for the re-sync, not yet confirmed by the owner:
+
+- A leaver's unpaid fee is cancelled. A fee they already paid stands, so they can still win that gameweek; the coordinator can `/markunpaid` it.
+- A joiner owes the fee for the gameweek open at the time, as long as its deadline hasn't passed.
+
+League 1680179 went from 11 to 10 managers on 2026-11-05, while this was being built; the 11-manager fixture is a snapshot.
 
 Locked by real data (league 1680179, 11 managers, 7 real hits):
 

@@ -138,5 +138,8 @@
   "table.overall": "Overall:",
   "table.line": "{rank}. {team}: {value}",
   "table.noGameweek": "No gameweek has started yet.",
+  "sync.joined": "{team} ({manager}) joined the FPL league. Claim your team here: {link}",
+  "sync.rejoined": "{team} ({manager}) is back in the FPL league.",
+  "sync.left": "{team} ({manager}) has left the FPL league, so they won't be charged from now on. Any fee they hadn't paid is cancelled.",
   "rules.saved": "{key} is now {value}. Gameweeks that have already started aren't affected."
 }
