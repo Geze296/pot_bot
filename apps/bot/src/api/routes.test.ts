@@ -221,6 +221,12 @@ describe("two leagues", () => {
     });
     const decide = await call(OWNER, "POST", `/leagues/${leagueId}/payments/${payment.id}/decide`, { approve: true });
     expect(decide.statusCode).toBe(404);
+
+    await db.payment.update({ where: { id: payment.id }, data: { screenshotFileId: "their-file" } });
+    const screenshot = await call(OWNER, "POST", `/leagues/${leagueId}/payments/${payment.id}/screenshot`);
+    expect(screenshot.statusCode).toBe(404);
+    expect(screenshots).toEqual([]);
+
     expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).verifyStatus).toBe("needs_review");
   });
 });
@@ -389,15 +395,6 @@ describe("payments", () => {
       const response = await call(KIBROM, "POST", `/leagues/${leagueId}/payments/${payment.id}/screenshot`);
 
       expect(response.json()).toEqual({ error: "cant_message_you" });
-    });
-
-    it("won't send another league's screenshot", async () => {
-      const payment = await withImage();
-      await db.league.update({ where: { id: leagueId }, data: { ownerUserId: (await db.user.findFirstOrThrow()).id } });
-      const other = await call(OWNER, "POST", `/leagues/999999/payments/${payment.id}/screenshot`);
-
-      expect(other.statusCode).toBe(403);
-      expect(screenshots).toEqual([]);
     });
   });
 
