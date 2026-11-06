@@ -124,6 +124,14 @@ export interface Ledger {
     won: number;
     received: number;
   }[];
+  stats: {
+    memberId: number;
+    manager: string;
+    wins: number;
+    runnerUps: number;
+    biggestWin: number;
+    longestWinless: number;
+  }[];
 }
 
 export interface Members {

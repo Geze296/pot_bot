@@ -42,3 +42,9 @@ export function changes(before: unknown, after: unknown, labelOf: (key: string) 
       return show(was[key]) === "–" ? `${label}: ${show(now[key])}` : `${label}: ${show(was[key])} → ${show(now[key])}`;
     });
 }
+
+/** Who holds a record, with ties sharing it. Nobody holds a record of zero. */
+export function leaders<T>(rows: T[], valueOf: (row: T) => number): { rows: T[]; value: number } | null {
+  const value = Math.max(0, ...rows.map(valueOf));
+  return value > 0 ? { rows: rows.filter((row) => valueOf(row) === value), value } : null;
+}

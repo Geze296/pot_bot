@@ -1,4 +1,4 @@
-import { memberLedger } from "@potbot/core";
+import { memberLedger, seasonStats, type MemberSeasonStats } from "@potbot/core";
 import type { PrismaClient } from "@potbot/db";
 import { t } from "../i18n/index.js";
 import type { Share } from "./payouts.js";
@@ -29,6 +29,7 @@ export interface LedgerWeekRow {
 export interface Ledger {
   members: LedgerMemberRow[];
   weeks: LedgerWeekRow[];
+  stats: (MemberSeasonStats & { manager: string })[];
 }
 
 /** Every birr in and out, per member and per gameweek. It's worked out from the records, so it can't drift. */
@@ -40,6 +41,7 @@ export async function leagueLedger(db: PrismaClient, leagueId: number): Promise<
       include: {
         obligations: { include: { payments: { where: { verifyStatus: "verified" } } } },
         result: { include: { payouts: true } },
+        scores: { select: { memberId: true } },
       },
       orderBy: { fplEventId: "asc" },
     }),
@@ -91,7 +93,22 @@ export async function leagueLedger(db: PrismaClient, leagueId: number): Promise<
     });
   });
 
-  return { members: memberRows, weeks };
+  const stats = seasonStats(
+    gameweeks.flatMap((gameweek) =>
+      gameweek.result
+        ? [
+            {
+              winnerIds: gameweek.result.winnerMemberIds,
+              runnerUpIds: gameweek.result.runnerUpMemberIds,
+              payouts: (gameweek.result.payoutShares ?? []) as unknown as Share[],
+              playedIds: gameweek.scores.map((score) => score.memberId),
+            },
+          ]
+        : [],
+    ),
+  ).map((row) => ({ ...row, manager: memberOf(row.memberId)?.fplManagerName ?? "" }));
+
+  return { members: memberRows, weeks, stats };
 }
 
 /** Quotes what needs it. A leading =, +, - or @ is defused, so a team name can't run as a spreadsheet formula. */

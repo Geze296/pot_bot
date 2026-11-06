@@ -543,6 +543,15 @@ describe("A2: the ledger", () => {
     });
   });
 
+  it("season stats come from the results, including a shared win", async () => {
+    await seasonWithATie();
+    const { stats } = (await call(ALICE, "GET", `/leagues/${leagueId}/ledger`)).json();
+    const row = (name: string) => stats.find((item: { manager: string }) => item.manager === name);
+
+    expect(row("Yabets M")).toMatchObject({ wins: 1, played: 1, biggestWin: 333, longestWinless: 0 });
+    expect(row("Natnael Malike")).toMatchObject({ wins: 0, played: 1, longestWinless: 1 });
+  });
+
   it("an early payment moved on as credit counts once, under the later gameweek", async () => {
     await db.obligation.updateMany({
       where: { status: "due", gameweek: { fplEventId: 10 } },
@@ -599,6 +608,7 @@ describe("A2: the ledger", () => {
     const csv = ledgerCsv({
       members: [row, { ...row, team: "Red, White" }, { ...row, team: "+SUM(1)" }, { ...row, team: "@cmd" }],
       weeks: [],
+      stats: [],
     });
 
     expect(csv).toContain('"Abel ""The Man"""');

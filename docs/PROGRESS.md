@@ -56,6 +56,8 @@
 
 - [x] Mini App: Send me the screenshot on the review queue. Keeps Telegram's file reference, never the image, only while a payment is under review, and clears it once decided
 
+- [x] Mini App: hall of fame and shame on the Ledger: most wins, biggest win, most runner-up finishes, longest run without a win
+
 ## Review before going live
 
 A strict review of money, repeat runs and security fixed: moved FPL deadlines, credit stacking on a covered fee, chat using up the AI allowance, webhook errors being re-sent by Telegram, a group's chat ID changing on upgrade, anonymous admins becoming owner, mistyped IDs of huge public leagues, payout numbers being reusable as payments, claiming a team that left, manual scores losing bench and overall points, and a lost "settling is waiting" message.

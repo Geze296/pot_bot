@@ -428,5 +428,14 @@
   "web.payments.sendScreenshot": "Send me the screenshot",
   "web.payments.screenshotSent": "Sent to your private chat with the bot.",
   "web.error.no_screenshot": "That screenshot is no longer available.",
-  "review.screenshotCaption": "{name}'s payment for GW{gw}."
+  "review.screenshotCaption": "{name}'s payment for GW{gw}.",
+  "web.fame.title": "Hall of fame and shame",
+  "web.fame.wins": "Most wins",
+  "web.fame.biggest": "Biggest win",
+  "web.fame.runnerUps": "Most runner-up finishes",
+  "web.fame.winless": "Longest run without a win",
+  "web.fame.unitWins": "{value} won",
+  "web.fame.unitBirr": "{value} birr",
+  "web.fame.unitTimes": "{value} times",
+  "web.fame.unitWeeks": "{value} gameweeks"
 }

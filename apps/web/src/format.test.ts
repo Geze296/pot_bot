@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changes, dateTime, signed, timeLeft } from "./format.js";
+import { changes, dateTime, leaders, signed, timeLeft } from "./format.js";
 
 describe("dateTime", () => {
   it("shows the league's time zone, not the phone's", () => {
@@ -49,5 +49,19 @@ describe("changes", () => {
 
   it("uses friendly labels", () => {
     expect(changes({ a: 1 }, { a: 2 }, () => "Status")).toEqual(["Status: 1 → 2"]);
+  });
+});
+
+describe("leaders", () => {
+  const value = (row: { wins: number }) => row.wins;
+
+  it("finds who holds a record, with ties sharing it", () => {
+    const rows = [{ wins: 2 }, { wins: 3 }, { wins: 3 }];
+    expect(leaders(rows, value)).toEqual({ rows: [{ wins: 3 }, { wins: 3 }], value: 3 });
+  });
+
+  it("gives nobody a record of zero", () => {
+    expect(leaders([{ wins: 0 }], value)).toBeNull();
+    expect(leaders([], value)).toBeNull();
   });
 });
