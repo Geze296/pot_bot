@@ -1,4 +1,3 @@
-import { ScreenshotReadError, type ScreenshotReading } from "@potbot/ai";
 import type { League, Member, User } from "@potbot/db";
 import { checkScreenshot, type ScreenshotDecision } from "@potbot/payments";
 import { Composer, InlineKeyboard, type Api, type Context } from "grammy";
@@ -18,26 +17,7 @@ import {
 } from "../services/payments.js";
 import { ensureUser } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
-
-/** Keeps a burst of photos, or a bug, from running up the league's AI bill (hard rule 15). */
-const DAILY_READ_CAP = 100;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-interface Image {
-  fileId: string;
-  uniqueId: string;
-  isPhoto: boolean;
-}
-
-function imageIn(message: Message | undefined): Image | null {
-  const photo = message?.photo?.at(-1);
-  if (photo) return { fileId: photo.file_id, uniqueId: photo.file_unique_id, isPhoto: true };
-  const document = message?.document;
-  if (document?.mime_type?.startsWith("image/")) {
-    return { fileId: document.file_id, uniqueId: document.file_unique_id, isPhoto: false };
-  }
-  return null;
-}
+import { imageIn, readImage, sendImage, type Image } from "./images.js";
 
 function mentionsBot(text: string | undefined, entities: MessageEntity[] | undefined, username: string): boolean {
   return (entities ?? []).some(
@@ -45,15 +25,6 @@ function mentionsBot(text: string | undefined, entities: MessageEntity[] | undef
       entity.type === "mention" &&
       text?.slice(entity.offset, entity.offset + entity.length).toLowerCase() === `@${username.toLowerCase()}`,
   );
-}
-
-function sendImage(
-  api: Api,
-  chatId: number,
-  image: Pick<Image, "fileId" | "isPhoto">,
-  options: { caption: string; reply_markup?: InlineKeyboard },
-) {
-  return image.isPhoto ? api.sendPhoto(chatId, image.fileId, options) : api.sendDocument(chatId, image.fileId, options);
 }
 
 /** Only for a message the bot can't otherwise act on: a message to someone may fail if they never pressed Start. */
@@ -73,29 +44,6 @@ export function paymentCommands(deps: BotDeps): Composer<Context> {
 
   async function memberOf(leagueId: number, telegramId: number): Promise<Member | null> {
     return db.member.findFirst({ where: { leagueId, status: "active", user: { telegramId: BigInt(telegramId) } } });
-  }
-
-  /** Reads the image. Failure of any kind means "couldn't tell", which goes to the coordinator (hard rule 5). */
-  async function read(league: League, image: Image): Promise<ScreenshotReading | null> {
-    if (!deps.readScreenshot || !deps.downloadFile) return null;
-
-    const reads = await db.messageLog.count({
-      where: {
-        leagueId: league.id,
-        kind: "screenshot_read",
-        sentAt: { gte: new Date(now().getTime() - DAY_MS) },
-      },
-    });
-    if (reads >= DAILY_READ_CAP) return null;
-
-    try {
-      const reading = await deps.readScreenshot(await deps.downloadFile(image.fileId));
-      await claimMessage(db, league.id, `read:${image.uniqueId}`, "screenshot_read");
-      return reading;
-    } catch (error) {
-      if (!(error instanceof ScreenshotReadError)) console.error("Screenshot download failed:", error);
-      return null;
-    }
   }
 
   async function sendForReview(
@@ -148,7 +96,8 @@ export function paymentCommands(deps: BotDeps): Composer<Context> {
     });
     if (seen) return ctx.reply(t(language, "payments.sameImage"));
 
-    const reading = await read(league, image);
+    // If it can't be read, it goes to the coordinator (hard rule 5).
+    const reading = await readImage(deps, league, image, now());
     const decision: ScreenshotDecision = reading
       ? checkScreenshot(reading, {
           expectedReceiver: league.coordinatorTelebirrName,

@@ -32,11 +32,11 @@
 
 - [x] O2: one-command self-hosting. `docker compose up -d --build` runs the database and bot, applying migrations on start. Checked in the container up to Telegram login; not yet run with a real token. The Mini App joins it with A1. Webhook mode isn't built, so it uses long polling
 
-- [x] P5: record the pot payout. After results, the coordinator gets a card with a Paid button per winner, or uses `/paidout` with a transaction number; the group gets "Pot delivered". The number is stored and must be unused, but isn't checked with Telebirr, because receipt checks are deferred
+- [x] P5: record the pot payout. After results, the coordinator gets a card with a Paid button per winner, or sends `/payout` then a screenshot, in private or the group, which the bot reads and shows the group; `/paidout` records one by hand. The group gets "Pot delivered". Transaction numbers must be unused, but aren't checked with Telebirr, because receipt checks are deferred
 
 ## Added at the owner's request
 
-- [x] `/help`, in the group and in private, explaining what to do and every command
+- [x] `/help`, in the group and in private, explaining what to do and the member commands. `/admin` lists the owner's and coordinator's commands, and only they can see it
 - [x] The bot's replies in a group are deleted after 10 minutes. Results, reminders, the deadline list, "X paid", corrected results, claim announcements, setup messages and review cards stay (Claude's reading of the request, not yet confirmed by the owner)
 
 ## Rule decisions

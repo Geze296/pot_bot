@@ -268,6 +268,19 @@ model Payout {
   @@map("payouts")
 }
 
+// A coordinator ran /payout and the bot is waiting for their screenshot in this chat.
+model PayoutRequest {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  chatId     BigInt   @map("chat_id")
+  gameweekId Int      @map("gameweek_id")
+  memberId   Int      @map("member_id")
+  createdAt  DateTime @map("created_at") @db.Timestamptz(3)
+
+  @@unique([userId, chatId])
+  @@map("payout_requests")
+}
+
 model MemberFact {
   id        Int        @id @default(autoincrement())
   memberId  Int        @map("member_id")

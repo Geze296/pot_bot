@@ -286,6 +286,7 @@ const TABLES = [
   "audit_log",
   "messages_log",
   "member_facts",
+  "payout_requests",
   "payouts",
   "results",
   "scores",

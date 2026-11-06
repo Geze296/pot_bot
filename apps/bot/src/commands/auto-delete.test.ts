@@ -125,34 +125,54 @@ describe("what stays", () => {
   });
 });
 
+describe("/admin", () => {
+  const COMMANDS = [
+    "/payout",
+    "/paidout",
+    "/settelebirr",
+    "/markpaid",
+    "/markunpaid",
+    "/override",
+    "/setup",
+    "/coordinator",
+    "/rules",
+    "/setrule",
+    "/link",
+    "/unlink",
+  ];
+
+  it("gives the owner every command, in the group and in private", async () => {
+    await setUp();
+    for (const chat of [GROUP_ID, OWNER.id]) {
+      calls.length = 0;
+      await harness.say(OWNER, chat, "/admin");
+      for (const command of COMMANDS) expect(String(sentTo(chat)[0]?.payload.text)).toContain(command);
+    }
+  });
+
+  it("refuses members", async () => {
+    await setUp();
+    for (const chat of [GROUP_ID, ALICE.id]) {
+      calls.length = 0;
+      await harness.say(ALICE, chat, "/admin");
+      expect(String(sentTo(chat)[0]?.payload.text)).toContain("Only the league owner or coordinator");
+    }
+  });
+});
+
 describe("/help", () => {
-  it("explains what to do and every command, in the group and in private", async () => {
+  it("explains what to do and the member commands, in the group and in private", async () => {
     for (const chat of [GROUP_ID, ALICE.id]) {
       calls.length = 0;
       await harness.say(ALICE, chat, "/help");
       const text = String(sentTo(chat)[0]?.payload.text);
 
       expect(text).toContain("@pot_test_bot");
-      for (const expected of [
-        "Claim my team",
-        "screenshot",
-        "/status",
-        "/table",
-        "/help",
-        "/setup",
-        "/settelebirr",
-        "/coordinator",
-        "/markpaid",
-        "/markunpaid",
-        "/override",
-        "/rules",
-        "/setrule",
-        "/link",
-        "/unlink",
-      ]) {
+      for (const expected of ["Claim my team", "screenshot", "/status", "/table", "/help", "/admin", "/setup"]) {
         expect(text).toContain(expected);
       }
       expect(text).toContain("never holds or sends money");
+      expect(text).not.toContain("/markpaid");
     }
   });
 

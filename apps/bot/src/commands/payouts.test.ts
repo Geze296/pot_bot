@@ -266,3 +266,146 @@ describe("a correction after results", () => {
     expect(groupTexts().at(-1)).not.toContain("already recorded");
   });
 });
+
+describe("/payout, then a screenshot", () => {
+  const paidScreenshot = (overrides = {}) => ({
+    isTelebirrReceipt: true,
+    successful: true,
+    transactionNumber: "PAYOUT0001",
+    transactionTo: "Yabets",
+    transactionTime: "2026/11/10 15:00:00",
+    amount: 1003,
+    ...overrides,
+  });
+  const lastTo = (chatId: number) =>
+    calls.filter((call) => call.method === "sendMessage" && call.payload.chat_id === chatId).at(-1)?.payload.text;
+  const sentPhotos = () => calls.filter((call) => call.method === "sendPhoto");
+
+  beforeEach(() => {
+    harness.reader.fails = false;
+    harness.reader.reading = paidScreenshot();
+    harness.reader.calls = 0;
+  });
+
+  it("in private: records it, shows the group the screenshot and confirms", async () => {
+    await settleGw10({ [JAZZ]: { points: 90 } });
+    await harness.say(KIBROM, KIBROM.id, "/payout");
+    expect(lastTo(KIBROM.id)).toContain("send Yabets M 1000 birr on Telebirr");
+
+    await harness.photo(KIBROM, KIBROM.id, { fileId: "proof" });
+
+    const payout = await db.payout.findFirstOrThrow();
+    expect(payout).toMatchObject({ amount: 1000, txnId: "PAYOUT0001", paidAt: new Date("2026-11-10T12:00:00.000Z") });
+    expect(await db.auditLog.count({ where: { action: "payout.record" } })).toBe(1);
+    expect(sentPhotos()[0]?.payload).toMatchObject({
+      chat_id: GROUP_ID,
+      photo: "proof",
+      caption: expect.stringContaining("Pot delivered: Yabets M received 1000 birr for GW10."),
+    });
+    expect(sentPhotos()[0]?.payload.caption).toContain("Telebirr shows it went to: Yabets");
+    expect(lastTo(KIBROM.id)).toContain("payout for GW10 is recorded");
+    expect(await db.payoutRequest.count()).toBe(0);
+  });
+
+  it("in the group: no mention needed, and the announcement stays", async () => {
+    await settleGw10({ [JAZZ]: { points: 90 } });
+    await harness.say(KIBROM, GROUP_ID, "/payout");
+    deletions.length = 0;
+    await harness.photo(KIBROM, GROUP_ID);
+
+    expect(await db.payout.count()).toBe(1);
+    expect(groupTexts().at(-1)).toContain("Pot delivered: Yabets M");
+    expect(deletions).toEqual([]);
+  });
+
+  it("with tied winners, asks who first, then the next /payout offers only the other", async () => {
+    const gameweek = await settleGw10({ [JAZZ]: { points: 90 }, [KINGS]: { points: 90 } });
+    const jazz = await memberOf(JAZZ);
+    await harness.say(KIBROM, KIBROM.id, "/payout");
+    expect(lastTo(KIBROM.id)).toContain("who did you pay");
+
+    await harness.tap(KIBROM, KIBROM.id, `payoutpick:${gameweek.id}:${jazz.id}`);
+    expect(edits().at(-1)).toContain("send Yabets M 500 birr");
+    harness.reader.reading = paidScreenshot({ amount: 502 });
+    await harness.photo(KIBROM, KIBROM.id);
+    expect((await db.payout.findFirstOrThrow()).memberId).toBe(jazz.id);
+
+    await harness.say(KIBROM, KIBROM.id, "/payout");
+    expect(lastTo(KIBROM.id)).toContain("send KB Gselassie 500 birr");
+  });
+
+  it("uses the oldest unpaid gameweek, and says when there's nothing", async () => {
+    await harness.say(KIBROM, KIBROM.id, "/payout");
+    expect(lastTo(KIBROM.id)).toContain("no payouts waiting");
+
+    await settleGw10({ [JAZZ]: { points: 90 } });
+    await harness.say(KIBROM, KIBROM.id, "/payout");
+    await harness.photo(KIBROM, KIBROM.id);
+    await harness.say(KIBROM, KIBROM.id, "/payout");
+    expect(lastTo(KIBROM.id)).toContain("no payouts waiting");
+  });
+
+  it.each([
+    [{ isTelebirrReceipt: false }, "doesn't look like a Telebirr"],
+    [{ successful: false }, "didn't succeed"],
+    [{ amount: 500 }, "500 birr, but 1000 birr is due"],
+    [{ transactionTime: "2026/11/06 12:00:00" }, "before the GW10 deadline"],
+    [{ transactionNumber: null }, "couldn't read that clearly"],
+  ])("refuses %j and keeps waiting for a better screenshot", async (overrides, message) => {
+    await settleGw10({ [JAZZ]: { points: 90 } });
+    await harness.say(KIBROM, KIBROM.id, "/payout");
+    harness.reader.reading = paidScreenshot(overrides);
+    await harness.photo(KIBROM, KIBROM.id);
+
+    expect(lastTo(KIBROM.id)).toContain(message);
+    expect(await db.payout.count()).toBe(0);
+
+    harness.reader.reading = paidScreenshot();
+    await harness.photo(KIBROM, KIBROM.id);
+    expect(await db.payout.count()).toBe(1);
+  });
+
+  it("when the AI is down, points to /paidout and records nothing", async () => {
+    await settleGw10({ [JAZZ]: { points: 90 } });
+    await harness.say(KIBROM, KIBROM.id, "/payout");
+    harness.reader.fails = true;
+    await harness.photo(KIBROM, KIBROM.id);
+
+    expect(lastTo(KIBROM.id)).toContain(`/paidout 10 ${JAZZ}`);
+    expect(await db.payout.count()).toBe(0);
+  });
+
+  it("a transaction number can't be reused", async () => {
+    const gameweek = await settleGw10({ [JAZZ]: { points: 90 }, [KINGS]: { points: 90 } });
+    const [jazz, kings] = [await memberOf(JAZZ), await memberOf(KINGS)];
+    harness.reader.reading = paidScreenshot({ amount: 502 });
+    await harness.tap(KIBROM, KIBROM.id, `payoutpick:${gameweek.id}:${jazz.id}`);
+    await harness.photo(KIBROM, KIBROM.id);
+    await harness.tap(KIBROM, KIBROM.id, `payoutpick:${gameweek.id}:${kings.id}`);
+    await harness.photo(KIBROM, KIBROM.id);
+
+    expect(lastTo(KIBROM.id)).toContain("already been used");
+    expect(await db.payout.count()).toBe(1);
+  });
+
+  it("a photo with no /payout before it, or long after, isn't treated as one", async () => {
+    await settleGw10({ [JAZZ]: { points: 90 } });
+    await harness.say(KIBROM, KIBROM.id, "/payout");
+    harness.clock.now = new Date(AFTER_MATCHES.getTime() + 31 * 60 * 1000);
+    await harness.photo(KIBROM, KIBROM.id);
+
+    expect(await db.payout.count()).toBe(0);
+    expect(await db.payoutRequest.count()).toBe(0);
+  });
+
+  it("only the owner or coordinator can start one, and another person's photo doesn't count", async () => {
+    await settleGw10({ [JAZZ]: { points: 90 } });
+    await harness.say(ALICE, GROUP_ID, "/payout");
+    expect(groupTexts().at(-1)).toContain("Only the league owner or coordinator");
+    expect(await db.payoutRequest.count()).toBe(0);
+
+    await harness.say(KIBROM, GROUP_ID, "/payout");
+    await harness.photo(ALICE, GROUP_ID);
+    expect(await db.payout.count()).toBe(0);
+  });
+});
