@@ -2,6 +2,7 @@ import { currentReminderRound, potFromObligations, type ReminderRound } from "@p
 import type { Gameweek, League, Member, PrismaClient, User } from "@potbot/db";
 import { formatTimeLeft } from "../i18n/format.js";
 import { t, type Language, type MessageKey } from "../i18n/index.js";
+import { aiLine } from "./banter.js";
 import { claimMessage, releaseMessage } from "./message-log.js";
 import type { SettlementDeps } from "./settlement.js";
 
@@ -39,11 +40,22 @@ async function sendRound(deps: SettlementDeps, league: League, gameweek: Gamewee
   const groupKey = `reminder:gw${gw}:${round.key}:group`;
   if (await claimMessage(db, league.id, groupKey, "reminder")) {
     const names = unpaid.map((item) => mentionFor(item.member)).join(", ");
-    const text = t("en", `reminder.group.${round.tone}` as MessageKey, {
+    const reminder = t("en", `reminder.group.${round.tone}` as MessageKey, {
       gw,
       names,
       left: formatTimeLeft("en", msLeft),
     });
+    // The AI only adds colour after the reminder. It's told no names, so it can't single anyone out.
+    const quip =
+      round.tone === "polite"
+        ? null
+        : await aiLine(
+            deps,
+            league,
+            `Write one short, sassy line urging the group to pay their gameweek ${gw} fee, with ${formatTimeLeft("en", msLeft)} left. Name nobody.`,
+            now,
+          );
+    const text = quip ? `${reminder}\n\n${escapeHtml(quip)}` : reminder;
     try {
       await send(league.telegramChatId, text, { parse_mode: "HTML" });
     } catch (error) {

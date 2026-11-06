@@ -11,12 +11,14 @@ import {
   type Payout,
   type SettleOutcome,
 } from "@potbot/core";
+import type { TextGenerator } from "@potbot/ai";
 import type { Gameweek, League, Member, Prisma, PrismaClient } from "@potbot/db";
 import type { FplClient, FplEvent } from "@potbot/fpl";
 import type { InlineKeyboard } from "grammy";
 import { t } from "../i18n/index.js";
 import { scoresForEvent, SETUP_STATE } from "./league-setup.js";
 import { postPendingAwards } from "./awards.js";
+import { postPendingRecaps } from "./banter.js";
 import { claimMessage, releaseMessage } from "./message-log.js";
 import { sendPayoutCard } from "./payouts.js";
 import { postDeadlineMessages, sendReminders } from "./reminders.js";
@@ -28,6 +30,8 @@ export interface SendOptions {
 }
 
 export interface SettlementDeps {
+  /** Missing when there's no Gemini key. Banter then uses templates. */
+  generateText?: TextGenerator;
   db: PrismaClient;
   fpl: FplClient;
   send: (chatId: bigint, text: string, options?: SendOptions) => Promise<unknown>;
@@ -388,6 +392,7 @@ export async function tickLeague(deps: SettlementDeps, leagueId: number, now: Da
   // Awards are for fun, so an FPL hiccup here retries next tick and never affects the result.
   try {
     await postPendingAwards(deps, league);
+    await postPendingRecaps(deps, league, now);
   } catch (error) {
     console.error(`League ${leagueId} couldn't post awards:`, error);
   }

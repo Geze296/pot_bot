@@ -148,6 +148,13 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     sleep: async () => {},
     now: () => (fplClock += 60 * 60 * 1000),
   });
+  /** Text the fake AI returns. Left unset, it fails, as Gemini does when overloaded. */
+  const ai = { reply: undefined as string | undefined, calls: [] as { system: string; prompt: string }[] };
+  const generateText = async (system: string, prompt: string) => {
+    ai.calls.push({ system, prompt });
+    if (ai.reply === undefined) throw new Error("Gemini is down");
+    return ai.reply;
+  };
   const reader = { reading: undefined as ScreenshotReading | undefined, fails: false, calls: 0 };
   const clock = { now: new Date("2026-11-05T12:00:00Z") };
   const deletions: { chatId: number; messageId: number }[] = [];
@@ -163,6 +170,7 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
         return reader.reading;
       },
       downloadFile: async () => ({ bytes: new Uint8Array([1]), mimeType: "image/jpeg" }),
+      generateText,
       now: () => clock.now,
       scheduleDeletion: async (chatId, messageId) => {
         if (deletionsFail.value) throw new Error("The queue is down");
@@ -235,6 +243,7 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     telegram,
     deletions,
     deletionsFail,
+    ai,
     reader,
     clock,
     blockedChats,
@@ -260,7 +269,7 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
         },
       } as Update);
     },
-    tick: (now: Date) => tickAllLeagues({ db, fpl, send }, now),
+    tick: (now: Date) => tickAllLeagues({ db, fpl, send, generateText }, now),
     sync: () => syncAllLeagues({ db, fpl, send, botUsername: botInfo.username }),
     /** Text of every message and edit sent since the last call. */
     takeTexts(): string[] {

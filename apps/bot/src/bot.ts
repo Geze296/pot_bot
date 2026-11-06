@@ -1,6 +1,7 @@
 import { Bot, type BotConfig, type Context } from "grammy";
 import { adminCommands } from "./commands/admin.js";
 import { autoDeleteReplies } from "./commands/auto-delete.js";
+import { banterCommands } from "./commands/banter.js";
 import type { BotDeps } from "./commands/deps.js";
 import { joinCommands } from "./commands/join.js";
 import { linkCommands } from "./commands/link.js";
@@ -36,6 +37,7 @@ export function createBot(token: string, deps: BotDeps, config?: BotConfig<Conte
 
   // Last, so it only sees messages no command has handled.
   bot.use(paymentCommands(deps));
+  bot.use(banterCommands(deps));
 
   // A failure handling one update must not stop the bot for everyone else.
   bot.catch((error) => console.error("Error handling update:", error.error));

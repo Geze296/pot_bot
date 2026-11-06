@@ -1,4 +1,4 @@
-import { createScreenshotReader } from "@potbot/ai";
+import { createScreenshotReader, createTextGenerator } from "@potbot/ai";
 import { createDb } from "@potbot/db";
 import { createFplClient } from "@potbot/fpl";
 import type { Bot } from "grammy";
@@ -15,10 +15,16 @@ async function main(): Promise<void> {
 
   const db = createDb(config.databaseUrl);
   const fpl = createFplClient();
+  const ai = config.geminiApiKey
+    ? {
+        readScreenshot: createScreenshotReader({ apiKey: config.geminiApiKey }),
+        generateText: createTextGenerator({ apiKey: config.geminiApiKey }),
+      }
+    : {};
   const bot: Bot = createBot(config.botToken, {
     db,
     fpl,
-    ...(config.geminiApiKey ? { readScreenshot: createScreenshotReader({ apiKey: config.geminiApiKey }) } : {}),
+    ...ai,
     downloadFile: (fileId) => downloadTelegramFile(bot.api, config.botToken, fileId),
     scheduleDeletion: (chatId, messageId) => scheduleMessageDeletion(boss, chatId, messageId),
   });
@@ -27,7 +33,7 @@ async function main(): Promise<void> {
   // Fails here on a bad token, before anything starts. It also gives the username for claim links.
   await bot.init();
   const boss = await startJobs(config.databaseUrl, {
-    tick: () => tickAllLeagues({ db, fpl, send }, new Date()),
+    tick: () => tickAllLeagues({ db, fpl, send, ...ai }, new Date()),
     sync: () => syncAllLeagues({ db, fpl, send, botUsername: bot.botInfo.username }),
     deleteMessage: (chatId, messageId) => bot.api.deleteMessage(chatId, messageId),
   });
