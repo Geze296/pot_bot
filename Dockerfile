@@ -6,9 +6,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
 RUN corepack enable
 
 WORKDIR /app
+
+# Downloads come first, from the lockfile alone. They stay cached unless dependencies change, so a code change
+# rebuilds quickly and a failed build doesn't start again from nothing.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm fetch --fetch-retries=5 --network-concurrency=8
+
 COPY . .
 # The bot runs from TypeScript with tsx, so dev dependencies stay in the image.
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --offline
 RUN pnpm build
 
 ENV NODE_ENV=production
