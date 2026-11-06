@@ -5,6 +5,7 @@ import { t, toLanguage, type Language } from "../i18n/index.js";
 import { awardLines, latestAwards } from "../services/awards.js";
 import { SETUP_STATE } from "../services/league-setup.js";
 import { createLiveTables, type TableRow } from "../services/live-table.js";
+import { currentObligation } from "../services/payments.js";
 import { leagueStatus } from "../services/reminders.js";
 import { ensureObligations } from "../services/settlement.js";
 import type { BotDeps } from "./deps.js";
@@ -74,6 +75,41 @@ export function statusCommands({ db, fpl, now: nowDep }: BotDeps): Composer<Cont
     add("status.unpaid", status.unpaid);
     add("status.out", status.out);
     return ctx.reply(lines.join("\n"));
+  });
+
+  composer.command("owe", async (ctx) => {
+    const language = toLanguage(ctx.from?.language_code);
+    if (ctx.chat.type !== "private") return ctx.reply(t(language, "owe.privateOnly"));
+
+    const members = await db.member.findMany({
+      where: { user: { telegramId: BigInt(ctx.from!.id) }, league: { setupState: SETUP_STATE.active } },
+      include: { league: true },
+    });
+    if (members.length === 0) return ctx.reply(t(language, "payments.notLinked"));
+
+    const lines: string[] = [];
+    for (const member of members) {
+      const current = await currentObligation(db, member.league, member);
+      if (!current || current.obligation.status !== "due") continue;
+
+      const { gameweek, obligation } = current;
+      const inReview = await db.payment.count({ where: { obligationId: obligation.id, verifyStatus: "needs_review" } });
+      if (inReview > 0) {
+        lines.push(t(language, "owe.inReview", { league: member.league.name, gw: gameweek.fplEventId }));
+        continue;
+      }
+      lines.push(
+        t(language, "owe.line", {
+          league: member.league.name,
+          amount: obligation.amountDue,
+          gw: gameweek.fplEventId,
+          deadline: formatLocalTime(gameweek.deadlineAt, member.league.timezone),
+          left: formatTimeLeft(language, gameweek.deadlineAt.getTime() - now().getTime()),
+          receiver: member.league.coordinatorTelebirrName ?? t(language, "reminder.theCoordinator"),
+        }),
+      );
+    }
+    return ctx.reply(lines.length > 0 ? lines.join("\n\n") : t(language, "owe.nothing"));
   });
 
   composer.command("awards", async (ctx) => {

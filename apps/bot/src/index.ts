@@ -8,6 +8,7 @@ import { apiRoutes } from "./api/routes.js";
 import { createApi } from "./api/server.js";
 import { createBot } from "./bot.js";
 import { syncMenuButton } from "./commands/app.js";
+import { syncCommands } from "./commands/menu.js";
 import { loadConfig } from "./config.js";
 import { scheduleMessageDeletion, startJobs } from "./jobs/boss.js";
 import { syncAllLeagues } from "./services/league-sync.js";
@@ -88,6 +89,7 @@ async function main(): Promise<void> {
   process.once("SIGTERM", () => void shutdown());
 
   await syncMenuButton(bot.api, config.publicUrl);
+  await syncCommands(bot.api);
 
   if (config.publicUrl) {
     await bot.api.setWebhook(`${config.publicUrl}${WEBHOOK_PATH}`, { secret_token: webhookSecret });

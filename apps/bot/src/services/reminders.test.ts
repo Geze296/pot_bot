@@ -337,3 +337,44 @@ describe("two leagues", () => {
     expect(other?.text).toContain("Jazz");
   });
 });
+
+describe("/owe", () => {
+  const owe = async (person = ALICE as typeof ALICE, chat = person.id as number) => {
+    calls.length = 0;
+    harness.clock.now = before(30 * 60);
+    await harness.say(person, chat, "/owe");
+    return String(calls.find((call) => call.method === "sendMessage")?.payload.text);
+  };
+
+  it("says what's due, by when, and who to pay", async () => {
+    await harness.say(OWNER, GROUP_ID, "/settelebirr Kibrom");
+    const text = await owe();
+
+    expect(text).toContain("100 birr for GW10");
+    expect(text).toContain("Fri 6 Nov, 21:30");
+    expect(text).toContain("1d 6h left");
+    expect(text).toContain("Kibrom");
+  });
+
+  it("says when nothing is owed", async () => {
+    await pay(JAZZ);
+
+    expect(await owe()).toContain("don't owe anything");
+  });
+
+  it("says when a payment is waiting on the coordinator", async () => {
+    const obligation = await db.obligation.findFirstOrThrow({
+      where: { member: { fplEntryId: JAZZ }, gameweek: { fplEventId: 10 } },
+    });
+    await db.payment.create({
+      data: { obligationId: obligation.id, amount: 100, method: "screenshot", verifyStatus: "needs_review" },
+    });
+
+    expect(await owe()).toContain("waiting on the coordinator");
+  });
+
+  it("is private, and needs a team", async () => {
+    expect(await owe(ALICE, GROUP_ID)).toContain("in private");
+    expect(await owe({ id: 900, first_name: "Stranger" } as typeof ALICE)).toContain("claim link");
+  });
+});
