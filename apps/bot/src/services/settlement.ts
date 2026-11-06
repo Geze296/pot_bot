@@ -13,16 +13,23 @@ import {
 } from "@potbot/core";
 import type { Gameweek, League, Member, Prisma, PrismaClient } from "@potbot/db";
 import type { FplClient, FplEvent } from "@potbot/fpl";
+import type { InlineKeyboard } from "grammy";
 import { t } from "../i18n/index.js";
 import { scoresForEvent, SETUP_STATE } from "./league-setup.js";
 import { claimMessage, releaseMessage } from "./message-log.js";
+import { sendPayoutCard } from "./payouts.js";
 import { postDeadlineMessages, sendReminders } from "./reminders.js";
 import { isUniqueViolation } from "./users.js";
+
+export interface SendOptions {
+  parse_mode?: "HTML";
+  reply_markup?: InlineKeyboard;
+}
 
 export interface SettlementDeps {
   db: PrismaClient;
   fpl: FplClient;
-  send: (chatId: bigint, text: string, options?: { parse_mode: "HTML" }) => Promise<unknown>;
+  send: (chatId: bigint, text: string, options?: SendOptions) => Promise<unknown>;
 }
 
 type Tx = Prisma.TransactionClient;
@@ -310,6 +317,7 @@ async function postPendingResults({ db, send }: SettlementDeps, league: League):
       await releaseMessage(db, league.id, key);
       throw error;
     }
+    await sendPayoutCard({ db, send }, league, gameweek.id);
   }
 }
 
@@ -431,7 +439,22 @@ async function postCorrection(
     ...resultLines(gameweek, pot, outcome, members),
   ];
   if (nextLocked) lines.push(t("en", "override.nextLocked", { gw: gameweek.fplEventId + 1 }));
+
+  // A share already sent can't be undone by the bot, so a mismatch is flagged, not changed.
+  const recorded = await deps.db.payout.findMany({
+    where: { result: { gameweekId: gameweek.id } },
+    include: { member: true },
+  });
+  const mismatched = recorded.filter(
+    (payout) => !outcome.payouts.some((share) => share.memberId === payout.memberId && share.amount === payout.amount),
+  );
+  if (mismatched.length > 0) {
+    const names = mismatched.map((payout) => payout.member.fplManagerName).join(", ");
+    lines.push(t("en", "override.payoutRecorded", { names }));
+  }
+
   await deps.send(league.telegramChatId, lines.join("\n"));
+  await sendPayoutCard(deps, league, gameweek.id);
 }
 
 /** Writes a manual score. If the gameweek already settled, the result is worked out again and corrected. */

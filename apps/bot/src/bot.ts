@@ -5,6 +5,7 @@ import { joinCommands } from "./commands/join.js";
 import { linkCommands } from "./commands/link.js";
 import { overrideCommands } from "./commands/override.js";
 import { paymentCommands } from "./commands/payments.js";
+import { payoutCommands } from "./commands/payouts.js";
 import { rulesCommands } from "./commands/rules.js";
 import { setupCommands } from "./commands/setup.js";
 import { statusCommands } from "./commands/status.js";
@@ -19,6 +20,7 @@ export function createBot(token: string, deps: BotDeps, config?: BotConfig<Conte
   bot.use(setupCommands(deps));
   bot.use(linkCommands(deps));
   bot.use(overrideCommands(deps));
+  bot.use(payoutCommands(deps));
   bot.use(rulesCommands(deps));
   bot.use(statusCommands(deps));
 

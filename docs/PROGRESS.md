@@ -32,6 +32,8 @@
 
 - [x] O2: one-command self-hosting. `docker compose up -d --build` runs the database and bot, applying migrations on start. Checked in the container up to Telegram login; not yet run with a real token. The Mini App joins it with A1. Webhook mode isn't built, so it uses long polling
 
+- [x] P5: record the pot payout. After results, the coordinator gets a card with a Paid button per winner, or uses `/paidout` with a transaction number; the group gets "Pot delivered". The number is stored and must be unused, but isn't checked with Telebirr, because receipt checks are deferred
+
 ## Added at the owner's request
 
 - [x] `/help`, in the group and in private, explaining what to do and every command

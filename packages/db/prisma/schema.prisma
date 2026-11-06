@@ -144,6 +144,7 @@ model Member {
   obligations Obligation[]
   scores      Score[]
   facts       MemberFact[]
+  payouts     Payout[]
 
   @@unique([leagueId, fplEntryId]) // a team belongs to one member row per league
   @@unique([leagueId, userId]) // a person claims one team per league; nulls stay distinct
@@ -242,12 +243,29 @@ model Result {
   halfPriceMemberIds Int[]    @default([]) @map("half_price_member_ids")
   carryOut          Int       @default(0) @map("carry_out") // leftover birr rolled into the next pot
   source            Source    @default(fpl) // a manual result wins over FPL data (hard rule 8)
-  payoutTxnId       String?   @map("payout_txn_id")
   paidOutAt         DateTime? @map("paid_out_at") @db.Timestamptz(3)
 
   gameweek Gameweek @relation(fields: [gameweekId], references: [id])
+  payouts  Payout[]
 
   @@map("results")
+}
+
+// A coordinator recording that they sent a winner their share. The bot itself never moves money.
+model Payout {
+  id         Int      @id @default(autoincrement())
+  resultId   Int      @map("result_id")
+  memberId   Int      @map("member_id")
+  amount     Int
+  txnId      String?  @unique @map("txn_id")
+  paidAt     DateTime @map("paid_at") @db.Timestamptz(3)
+  recordedBy Int      @map("recorded_by")
+
+  result Result @relation(fields: [resultId], references: [id])
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@unique([resultId, memberId]) // one payout per winner, so a double tap can't record two
+  @@map("payouts")
 }
 
 model MemberFact {

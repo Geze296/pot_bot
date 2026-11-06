@@ -5,7 +5,7 @@ import { createFplClient, type FplEntryHistory } from "@potbot/fpl";
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createBot } from "../bot.js";
 import { syncAllLeagues } from "../services/league-sync.js";
-import { tickAllLeagues } from "../services/settlement.js";
+import { tickAllLeagues, type SendOptions } from "../services/settlement.js";
 import { TEST_DATABASE_URL, TEST_SCHEMA } from "./database-url.js";
 
 const fixture = <T>(name: string): T =>
@@ -197,11 +197,16 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     } as Update;
   };
 
-  const posts: { chatId: bigint; text: string; parseMode?: string }[] = [];
+  const posts: { chatId: bigint; text: string; parseMode?: string; replyMarkup?: unknown }[] = [];
   const telegram = { down: false };
-  const send = async (chatId: bigint, text: string, options?: { parse_mode: "HTML" }) => {
+  const send = async (chatId: bigint, text: string, options?: SendOptions) => {
     if (telegram.down || blockedChats.has(Number(chatId))) throw new Error("Telegram is down");
-    posts.push({ chatId, text, ...(options ? { parseMode: options.parse_mode } : {}) });
+    posts.push({
+      chatId,
+      text,
+      ...(options?.parse_mode ? { parseMode: options.parse_mode } : {}),
+      ...(options?.reply_markup ? { replyMarkup: options.reply_markup } : {}),
+    });
   };
 
   return {
@@ -281,6 +286,7 @@ const TABLES = [
   "audit_log",
   "messages_log",
   "member_facts",
+  "payouts",
   "results",
   "scores",
   "payments",

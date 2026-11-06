@@ -2,7 +2,7 @@ import { Composer, type Context } from "grammy";
 import type { League, User } from "@potbot/db";
 import { t, toLanguage } from "../i18n/index.js";
 import { SETUP_STATE } from "../services/league-setup.js";
-import { overrideScore, overrideWinner } from "../services/settlement.js";
+import { overrideScore, overrideWinner, type SendOptions } from "../services/settlement.js";
 import { ensureUser } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
 
@@ -12,7 +12,8 @@ const teamIds = (text: string | undefined): number[] =>
 
 export function overrideCommands({ db }: BotDeps): Composer<Context> {
   const composer = new Composer<Context>();
-  const send = (chatId: bigint, text: string, ctx: Context) => ctx.api.sendMessage(Number(chatId), text);
+  const send = (chatId: bigint, text: string, options: SendOptions | undefined, ctx: Context) =>
+    ctx.api.sendMessage(Number(chatId), text, options);
 
   /** The group's active league, if the sender is its owner or coordinator. Otherwise replies and returns nothing. */
   async function asManager(ctx: Context): Promise<{ league: League; actor: User } | undefined> {
@@ -35,7 +36,10 @@ export function overrideCommands({ db }: BotDeps): Composer<Context> {
     const manager = await asManager(ctx);
     if (!manager) return;
     const { league, actor } = manager;
-    const deps = { db, send: (chatId: bigint, text: string) => send(chatId, text, ctx) };
+    const deps = {
+      db,
+      send: (chatId: bigint, text: string, options?: SendOptions) => send(chatId, text, options, ctx),
+    };
 
     const [kind, ...args] = ctx.match.trim().split(/\s+/);
     const usage = () => ctx.reply(t(language, "override.usage"));

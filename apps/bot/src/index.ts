@@ -7,7 +7,7 @@ import { createBot } from "./bot.js";
 import { loadConfig } from "./config.js";
 import { scheduleMessageDeletion, startJobs } from "./jobs/boss.js";
 import { syncAllLeagues } from "./services/league-sync.js";
-import { tickAllLeagues } from "./services/settlement.js";
+import { tickAllLeagues, type SendOptions } from "./services/settlement.js";
 import { downloadTelegramFile } from "./services/telegram-files.js";
 
 async function main(): Promise<void> {
@@ -22,7 +22,7 @@ async function main(): Promise<void> {
     downloadFile: (fileId) => downloadTelegramFile(bot.api, config.botToken, fileId),
     scheduleDeletion: (chatId, messageId) => scheduleMessageDeletion(boss, chatId, messageId),
   });
-  const send = (chatId: bigint, text: string, options?: { parse_mode: "HTML" }) =>
+  const send = (chatId: bigint, text: string, options?: SendOptions) =>
     bot.api.sendMessage(Number(chatId), text, options);
   // Fails here on a bad token, before anything starts. It also gives the username for claim links.
   await bot.init();
