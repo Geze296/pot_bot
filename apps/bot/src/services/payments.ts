@@ -8,6 +8,11 @@ type Tx = Prisma.TransactionClient;
 
 export type AnyReviewReason = ReviewReason | "out_of_window";
 
+export interface ScreenshotRef {
+  fileId: string;
+  isPhoto: boolean;
+}
+
 export type SubmitResult =
   | { kind: "paid"; gameweek: number; pot: number; lateFor?: number }
   | { kind: "duplicate" }
@@ -77,6 +82,7 @@ async function createReview(
   decision: { txnId?: string; amount?: number; paidAt?: Date },
   reason: AnyReviewReason,
   now: Date,
+  screenshot?: ScreenshotRef,
 ): Promise<SubmitResult> {
   const target = decision.paidAt ? await findTarget(tx, league, member, decision.paidAt) : null;
   let gameweek = target?.gameweek ?? (await currentGameweek(tx, league.id));
@@ -101,6 +107,8 @@ async function createReview(
       verifyStatus: "needs_review",
       verifyReason: reason,
       createdAt: now,
+      screenshotFileId: screenshot?.fileId ?? null,
+      screenshotIsPhoto: screenshot?.isPhoto ?? null,
     },
   });
   return { kind: "review", paymentId: payment.id, gameweek: gameweek.fplEventId, reason };
@@ -114,9 +122,10 @@ export async function recordDecision(
     member: Member;
     decision: Extract<ScreenshotDecision, { kind: "accepted" | "review" }>;
     now: Date;
+    screenshot?: ScreenshotRef;
   },
 ): Promise<SubmitResult> {
-  const { league, member, decision, now } = input;
+  const { league, member, decision, now, screenshot } = input;
   try {
     return await db.$transaction(async (tx) => {
       // Payouts keep their own numbers, and proof can't be used twice in any table (hard rule 6).
@@ -124,11 +133,11 @@ export async function recordDecision(
         return { kind: "duplicate" };
       }
       if (decision.kind === "review") {
-        return createReview(tx, league, member, decision, decision.reason, now);
+        return createReview(tx, league, member, decision, decision.reason, now, screenshot);
       }
 
       const target = await findTarget(tx, league, member, decision.paidAt);
-      if (!target) return createReview(tx, league, member, decision, "out_of_window", now);
+      if (!target) return createReview(tx, league, member, decision, "out_of_window", now, screenshot);
       if (!amountCovers(decision.amount, target.obligation.amountDue)) {
         return { kind: "short", amount: decision.amount, due: target.obligation.amountDue };
       }
@@ -178,7 +187,12 @@ export async function decideReview(
   return db.$transaction(async (tx) => {
     const { count } = await tx.payment.updateMany({
       where: { id: paymentId, verifyStatus: "needs_review" },
-      data: { verifyStatus: approve ? "verified" : "rejected", reviewedBy: actorId },
+      data: {
+        verifyStatus: approve ? "verified" : "rejected",
+        reviewedBy: actorId,
+        screenshotFileId: null,
+        screenshotIsPhoto: null,
+      },
     });
     if (count === 0) return null;
 

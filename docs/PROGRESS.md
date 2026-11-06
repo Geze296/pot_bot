@@ -54,6 +54,8 @@
 
 - [x] Mini App: a Table tab with live gameweek scores after hits and the overall table, and a How to pay card on the Dashboard while you owe
 
+- [x] Mini App: Send me the screenshot on the review queue. Keeps Telegram's file reference, never the image, only while a payment is under review, and clears it once decided
+
 ## Review before going live
 
 A strict review of money, repeat runs and security fixed: moved FPL deadlines, credit stacking on a covered fee, chat using up the AI allowance, webhook errors being re-sent by Telegram, a group's chat ID changing on upgrade, anonymous admins becoming owner, mistyped IDs of huge public leagues, payout numbers being reusable as payments, claiming a team that left, manual scores losing bench and overall points, and a lost "settling is waiting" message.
@@ -132,7 +134,6 @@ Chosen by Claude for the Mini App, not yet confirmed by the owner:
 
 - Members see the dashboard, results and ledger, including everyone's balances, because the SPEC calls for one trusted record visible to everyone. Payments, Members, Rules and Audit are for the owner and coordinator.
 - Pausing a member takes effect from the next gameweek's fee. What they already owe or paid stays.
-- The app's review queue shows details but not the screenshot, because images aren't stored (hard rule 12). The picture stays in the coordinator's private chat.
 
 Known limit: if a correction takes away a free pass from someone whose early payment already moved on as credit, the credit stays on the later gameweek and they owe the corrected fee. The coordinator sorts that out by hand.
 

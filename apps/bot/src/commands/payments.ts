@@ -115,7 +115,13 @@ export function paymentCommands(deps: BotDeps): Composer<Context> {
       );
     }
 
-    const result = await recordDecision(db, { league, member, decision, now: now() });
+    const result = await recordDecision(db, {
+      league,
+      member,
+      decision,
+      now: now(),
+      screenshot: { fileId: image.fileId, isPhoto: image.isPhoto },
+    });
     switch (result.kind) {
       case "no_gameweek":
         return ctx.reply(t(language, "payments.noGameweek"));

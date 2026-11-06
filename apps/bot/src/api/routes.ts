@@ -7,7 +7,7 @@ import { personaSettings, PERSONAS, type PersonaName } from "../services/banter.
 import { leagueLedger, ledgerCsv } from "../services/ledger.js";
 import { createLiveTables } from "../services/live-table.js";
 import { SETUP_STATE } from "../services/league-setup.js";
-import { decideReview, markPaid, markUnpaid } from "../services/payments.js";
+import { decideReview, markPaid, markUnpaid, type ScreenshotRef } from "../services/payments.js";
 import { recordPayout, type Share } from "../services/payouts.js";
 import { leagueStatus } from "../services/reminders.js";
 import { ensureObligations, overrideScore, overrideWinner, type SendOptions } from "../services/settlement.js";
@@ -23,6 +23,7 @@ export interface RouteDeps {
   botToken: string;
   send: (chatId: bigint, text: string, options?: SendOptions) => Promise<unknown>;
   sendDocument: (chatId: bigint, filename: string, content: string) => Promise<unknown>;
+  sendScreenshot: (chatId: bigint, screenshot: ScreenshotRef, caption: string) => Promise<unknown>;
   now?: () => Date;
 }
 
@@ -254,6 +255,7 @@ export function apiRoutes(deps: RouteDeps) {
           reason: payment.verifyReason,
           txnId: payment.txnId,
           paidAt: payment.paidAt,
+          hasScreenshot: payment.screenshotFileId !== null,
         })),
         members: obligations.map((item) => ({
           memberId: item.memberId,
@@ -291,6 +293,33 @@ export function apiRoutes(deps: RouteDeps) {
           league.telegramChatId,
           t("en", "payments.paidGroup", { name: member.fplManagerName, gw: gameweek, pot }),
         );
+      }
+      return { ok: true };
+    });
+
+    api.post("/leagues/:leagueId/payments/:paymentId/screenshot", async (request) => {
+      const { league, user } = await access(request, MANAGERS);
+      const paymentId = paramNumber((request.params as { paymentId: string }).paymentId);
+      const payment = await db.payment.findFirst({
+        where: { id: paymentId, obligation: { gameweek: { leagueId: league.id } } },
+        include: { obligation: { include: { member: true, gameweek: true } } },
+      });
+      if (!payment) throw new ApiError(404, "not_found");
+      if (!payment.screenshotFileId) throw new ApiError(409, "no_screenshot");
+
+      const caption = t("en", "review.screenshotCaption", {
+        name: payment.obligation.member.fplManagerName,
+        gw: payment.obligation.gameweek.fplEventId,
+      });
+      try {
+        await deps.sendScreenshot(
+          user.telegramId,
+          { fileId: payment.screenshotFileId, isPhoto: payment.screenshotIsPhoto ?? true },
+          caption,
+        );
+      } catch (error) {
+        console.error("Couldn't send a screenshot:", error);
+        throw new ApiError(409, "cant_message_you");
       }
       return { ok: true };
     });

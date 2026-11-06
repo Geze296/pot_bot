@@ -1,7 +1,7 @@
 import { request, type Payments } from "../api.js";
 import { dateTime } from "../format.js";
 import { text, textOr } from "../text.js";
-import { ActionNotices, Card, FeeBadge, Loading, Notice, useAction, useLoad } from "../ui.js";
+import { ActionNotices, Card, FeeBadge, Loading, useAction, useLoad } from "../ui.js";
 
 export function PaymentsScreen({ leagueId }: { leagueId: number }) {
   const { data, error, reload } = useLoad<Payments>(`/leagues/${leagueId}/payments`);
@@ -38,6 +38,19 @@ export function PaymentsScreen({ leagueId }: { leagueId: number }) {
               <dt>{text("web.payments.time")}</dt>
               <dd>{review.paidAt ? dateTime(review.paidAt, data.timezone) : text("review.unknown")}</dd>
             </dl>
+            {review.hasScreenshot && (
+              <button
+                className="link"
+                disabled={action.busy}
+                onClick={() =>
+                  void action.run(() => request("POST", `/leagues/${leagueId}/payments/${review.id}/screenshot`), {
+                    done: text("web.payments.screenshotSent"),
+                  })
+                }
+              >
+                {text("web.payments.sendScreenshot")}
+              </button>
+            )}
             <div className="buttons">
               <button disabled={action.busy} onClick={() => void decide(review.id, true, review.manager)}>
                 {text("review.approveButton")}
@@ -52,7 +65,6 @@ export function PaymentsScreen({ leagueId }: { leagueId: number }) {
             </div>
           </article>
         ))}
-        {data.reviews.length > 0 && <Notice kind="info">{text("web.payments.screenshotHint")}</Notice>}
       </Card>
 
       {data.gameweek && (

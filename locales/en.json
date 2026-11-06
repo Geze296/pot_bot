@@ -260,7 +260,6 @@
   "web.payments.noReviews": "Nothing is waiting for you.",
   "web.payments.txn": "Transaction",
   "web.payments.time": "Time on screenshot",
-  "web.payments.screenshotHint": "The screenshot itself is in your private chat with the bot.",
   "web.payments.feesTitle": "GW{gw} fees",
   "web.payments.undo": "Undo",
   "web.payments.markPaid": "Mark paid",
@@ -425,5 +424,9 @@
   "web.pay.title": "How to pay",
   "web.pay.send": "Send {amount} birr to {receiver} on Telebirr.",
   "web.pay.screenshot": "Send your Telebirr screenshot to me in a private chat, or post it in the group and mention me.",
-  "web.pay.inReview": "Your payment is waiting on the coordinator. Nothing else to do."
+  "web.pay.inReview": "Your payment is waiting on the coordinator. Nothing else to do.",
+  "web.payments.sendScreenshot": "Send me the screenshot",
+  "web.payments.screenshotSent": "Sent to your private chat with the bot.",
+  "web.error.no_screenshot": "That screenshot is no longer available.",
+  "review.screenshotCaption": "{name}'s payment for GW{gw}."
 }

@@ -62,6 +62,10 @@ async function main(): Promise<void> {
       send,
       sendDocument: (chatId, filename, content) =>
         bot.api.sendDocument(Number(chatId), new InputFile(Buffer.from(content), filename)),
+      sendScreenshot: (chatId, { fileId, isPhoto }, caption) =>
+        isPhoto
+          ? bot.api.sendPhoto(Number(chatId), fileId, { caption })
+          : bot.api.sendDocument(Number(chatId), fileId, { caption }),
     }),
     ...(config.publicUrl
       ? {

@@ -19,6 +19,8 @@ const harness = createHarness();
 const { db, fpl, world } = harness;
 const posts: { chatId: bigint; text: string }[] = [];
 const documents: { chatId: bigint; filename: string; content: string }[] = [];
+const screenshots: { chatId: bigint; fileId: string; isPhoto: boolean; caption: string }[] = [];
+let screenshotsFail = false;
 let documentsFail = false;
 let api: FastifyInstance;
 
@@ -62,6 +64,10 @@ beforeAll(async () => {
         if (documentsFail) throw new Error("Forbidden");
         documents.push({ chatId, filename, content });
       },
+      sendScreenshot: async (chatId, { fileId, isPhoto }, caption) => {
+        if (screenshotsFail) throw new Error("Forbidden");
+        screenshots.push({ chatId, fileId, isPhoto, caption });
+      },
     }),
   });
 });
@@ -72,6 +78,8 @@ beforeEach(async () => {
   posts.length = 0;
   documents.length = 0;
   documentsFail = false;
+  screenshots.length = 0;
+  screenshotsFail = false;
 
   await harness.say(OWNER, GROUP_ID, `/setup ${LEAGUE_ID}`);
   await harness.tap(OWNER, GROUP_ID, "setup:confirm");
@@ -127,6 +135,7 @@ describe("A1: who can do what", () => {
     ["rules", "GET", () => `/leagues/${leagueId}/rules`],
     ["audit", "GET", () => `/leagues/${leagueId}/audit`],
     ["ledger export", "POST", () => `/leagues/${leagueId}/ledger/send`],
+    ["screenshot", "POST", () => `/leagues/${leagueId}/payments/1/screenshot`],
     ["telebirr", "POST", () => `/leagues/${leagueId}/telebirr`, { name: "Kibrom" }],
     ["mark", "POST", () => `/leagues/${leagueId}/payments/mark`, {}],
     ["decide", "POST", () => `/leagues/${leagueId}/payments/1/decide`, { approve: true }],
@@ -257,6 +266,7 @@ describe("the table", () => {
         now: () => NOW,
         send: async () => {},
         sendDocument: async () => {},
+        sendScreenshot: async () => {},
       }),
     });
     const response = await fresh.inject({
@@ -335,6 +345,60 @@ describe("payments", () => {
     const again = await call(KIBROM, "POST", url, { approve: false });
     expect(again.statusCode).toBe(409);
     expect(again.json()).toEqual({ error: "already_decided" });
+  });
+
+  describe("Send me the screenshot", () => {
+    const withImage = async () => {
+      const payment = await review();
+      return db.payment.update({
+        where: { id: payment.id },
+        data: { screenshotFileId: "tg-file-1", screenshotIsPhoto: true },
+      });
+    };
+
+    it("sends it to the manager who asked, in private, with whose it is", async () => {
+      const payment = await withImage();
+      expect((await call(KIBROM, "GET", `/leagues/${leagueId}/payments`)).json().reviews[0].hasScreenshot).toBe(true);
+
+      const response = await call(KIBROM, "POST", `/leagues/${leagueId}/payments/${payment.id}/screenshot`);
+      expect(response.statusCode).toBe(200);
+      expect(screenshots[0]).toMatchObject({ chatId: BigInt(KIBROM.id), fileId: "tg-file-1", isPhoto: true });
+      expect(screenshots[0]?.caption).toContain("Yabets M");
+    });
+
+    it("never puts the reference in the API response", async () => {
+      await withImage();
+      const raw = (await call(KIBROM, "GET", `/leagues/${leagueId}/payments`)).body;
+
+      expect(raw).not.toContain("tg-file-1");
+    });
+
+    it("forgets the reference once decided (hard rule 12)", async () => {
+      const payment = await withImage();
+      await call(KIBROM, "POST", `/leagues/${leagueId}/payments/${payment.id}/decide`, { approve: false });
+
+      const saved = await db.payment.findUniqueOrThrow({ where: { id: payment.id } });
+      expect(saved).toMatchObject({ screenshotFileId: null, screenshotIsPhoto: null });
+      const again = await call(KIBROM, "POST", `/leagues/${leagueId}/payments/${payment.id}/screenshot`);
+      expect(again.json()).toEqual({ error: "no_screenshot" });
+    });
+
+    it("explains when it can't message them", async () => {
+      const payment = await withImage();
+      screenshotsFail = true;
+      const response = await call(KIBROM, "POST", `/leagues/${leagueId}/payments/${payment.id}/screenshot`);
+
+      expect(response.json()).toEqual({ error: "cant_message_you" });
+    });
+
+    it("won't send another league's screenshot", async () => {
+      const payment = await withImage();
+      await db.league.update({ where: { id: leagueId }, data: { ownerUserId: (await db.user.findFirstOrThrow()).id } });
+      const other = await call(OWNER, "POST", `/leagues/999999/payments/${payment.id}/screenshot`);
+
+      expect(other.statusCode).toBe(403);
+      expect(screenshots).toEqual([]);
+    });
   });
 
   it("rejecting tells only the member", async () => {

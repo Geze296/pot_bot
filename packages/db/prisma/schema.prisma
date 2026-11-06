@@ -203,6 +203,9 @@ model Payment {
   verifyStatus  VerifyStatus  @default(pending) @map("verify_status")
   verifyReason  String?       @map("verify_reason")
   reviewedBy    Int?          @map("reviewed_by")
+  // Telegram's reference to the screenshot, not the image. Kept only while under review, then cleared (hard rule 12).
+  screenshotFileId  String?   @map("screenshot_file_id")
+  screenshotIsPhoto Boolean?  @map("screenshot_is_photo")
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
 
   obligation Obligation @relation(fields: [obligationId], references: [id])

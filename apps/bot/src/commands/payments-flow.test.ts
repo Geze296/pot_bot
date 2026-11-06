@@ -313,6 +313,20 @@ describe("P3: coordinator review", () => {
     expect(JSON.stringify(review?.reply_markup)).toContain(`pay:reject:${payment.id}`);
   });
 
+  it("keeps Telegram's reference to the screenshot only while it's under review", async () => {
+    const payment = await submitForReview();
+    expect(payment).toMatchObject({ screenshotFileId: "unread", screenshotIsPhoto: true });
+
+    await harness.tap(KIBROM, KIBROM.id, `pay:reject:${payment.id}`, card);
+    expect(await db.payment.findFirstOrThrow()).toMatchObject({ screenshotFileId: null, screenshotIsPhoto: null });
+  });
+
+  it("an accepted payment never stores a reference", async () => {
+    await harness.photo(ALICE, ALICE.id);
+
+    expect((await db.payment.findFirstOrThrow()).screenshotFileId).toBeNull();
+  });
+
   it("a missing field goes to review, keeping what could be read", async () => {
     reader.reading = screenshot({ transactionTo: null, transactionNumber: "DJVMISSING1" });
     await harness.photo(ALICE, ALICE.id);

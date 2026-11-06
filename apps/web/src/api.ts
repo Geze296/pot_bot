@@ -73,6 +73,7 @@ export interface Payments {
     reason: string | null;
     txnId: string | null;
     paidAt: string | null;
+    hasScreenshot: boolean;
   }[];
   members: { memberId: number; manager: string; team: string; status: string; reason: string; amountDue: number }[];
 }
