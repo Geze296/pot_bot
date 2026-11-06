@@ -16,6 +16,7 @@ import type { FplClient, FplEvent } from "@potbot/fpl";
 import type { InlineKeyboard } from "grammy";
 import { t } from "../i18n/index.js";
 import { scoresForEvent, SETUP_STATE } from "./league-setup.js";
+import { postPendingAwards } from "./awards.js";
 import { claimMessage, releaseMessage } from "./message-log.js";
 import { sendPayoutCard } from "./payouts.js";
 import { postDeadlineMessages, sendReminders } from "./reminders.js";
@@ -383,6 +384,13 @@ export async function tickLeague(deps: SettlementDeps, leagueId: number, now: Da
     if (!event || !(await trySettle(deps, league, gameweek, event, now))) break;
   }
   await postPendingResults(deps, league);
+
+  // Awards are for fun, so an FPL hiccup here retries next tick and never affects the result.
+  try {
+    await postPendingAwards(deps, league);
+  } catch (error) {
+    console.error(`League ${leagueId} couldn't post awards:`, error);
+  }
 }
 
 export async function tickAllLeagues(deps: SettlementDeps, now: Date): Promise<void> {

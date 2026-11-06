@@ -244,6 +244,7 @@ model Result {
   carryOut          Int       @default(0) @map("carry_out") // leftover birr rolled into the next pot
   source            Source    @default(fpl) // a manual result wins over FPL data (hard rule 8)
   paidOutAt         DateTime? @map("paid_out_at") @db.Timestamptz(3)
+  awards            Json? // this gameweek's awards, once worked out
 
   gameweek Gameweek @relation(fields: [gameweekId], references: [id])
   payouts  Payout[]

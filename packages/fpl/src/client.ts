@@ -113,10 +113,25 @@ export function createFplClient(options: FplClientOptions = {}) {
     return histories;
   }
 
+  /** Skips a manager with no team that gameweek, which FPL reports as not found. */
+  async function getPicksForEntries(entries: number[], event: number): Promise<Map<number, FplPicks>> {
+    const picks = new Map<number, FplPicks>();
+    for (const [index, entry] of entries.entries()) {
+      if (index > 0) await sleep(BETWEEN_CALLS_MS);
+      try {
+        picks.set(entry, await get<FplPicks>(`entry/${entry}/event/${event}/picks/`));
+      } catch (error) {
+        if (!(error instanceof FplNotFoundError)) throw error;
+      }
+    }
+    return picks;
+  }
+
   return {
     getBootstrap,
     getLeagueStandings,
     getEntryHistories,
+    getPicksForEntries,
     getEventStatus: () => get<FplEventStatus>("event-status/"),
     getEntryHistory: (entry: number) => get<FplEntryHistory>(`entry/${entry}/history/`),
     getPicks: (entry: number, event: number) => get<FplPicks>(`entry/${entry}/event/${event}/picks/`),

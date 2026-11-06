@@ -38,6 +38,8 @@ export interface FplWorld {
   /** Extra history rows, by gameweek then FPL team ID. Teams left out score 30. */
   scores?: Record<number, Record<number, { points: number; cost?: number; total?: number }>>;
   fail?: boolean;
+  /** Fails only the live points, which only awards use. */
+  failLive?: boolean;
   /** Replaces the league's member list, as FPL's standings rows. */
   managers?: unknown[];
 }
@@ -45,6 +47,7 @@ export interface FplWorld {
 export const fixtureManagers = (): unknown[] => fixture<{ managers: unknown[] }>(`league-${LEAGUE_ID}.json`).managers;
 
 interface BootstrapFixture {
+  elements: { id: number; web_name: string; team: number }[];
   events: { id: number; finished: boolean; data_checked: boolean; is_current: boolean; is_next: boolean }[];
 }
 
@@ -52,8 +55,18 @@ interface BootstrapFixture {
 export function fixtureFetch(options: { failHistories?: boolean; world?: FplWorld } = {}): typeof globalThis.fetch {
   const world = options.world ?? {};
   // Only events are used here, and serving the full 2.5 MB fixture on every tick makes these tests crawl.
-  const { events } = fixture<BootstrapFixture>("bootstrap-static.json");
-  const bootstrap = { events, teams: [], elements: [] };
+  const { events, elements } = fixture<BootstrapFixture>("bootstrap-static.json");
+  const bootstrap = {
+    events,
+    teams: [],
+    elements: elements.map(({ id, web_name, team }) => ({ id, web_name, team })),
+  };
+  const picks = fixture<Record<string, unknown>>(`picks-${LEAGUE_ID}-gw9.json`);
+  const live = {
+    elements: fixture<{ elements: { id: number; stats: { total_points: number } }[] }>("live-gw9.json").elements.map(
+      ({ id, stats }) => ({ id, stats: { total_points: stats.total_points } }),
+    ),
+  };
   const histories = fixture<Record<string, FplEntryHistory>>(`histories-${LEAGUE_ID}.json`);
   const { league, managers } = fixture<{ league: unknown; managers: unknown[] }>(`league-${LEAGUE_ID}.json`);
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
@@ -80,6 +93,11 @@ export function fixtureFetch(options: { failHistories?: boolean; world?: FplWorl
         new_entries: { has_next: false, results: [] },
       });
     }
+    // Saved GW9 picks and points stand in for whichever gameweek a test plays out.
+    const pickEntry = path.match(/^entry\/(\d+)\/event\/\d+\/picks\/$/)?.[1];
+    if (pickEntry) return picks[pickEntry] ? json(picks[pickEntry]) : json({}, 404);
+    if (/^event\/\d+\/live\/$/.test(path)) return world.failLive ? json({}, 503) : json(live);
+
     const entry = path.match(/^entry\/(\d+)\/history\/$/)?.[1];
     if (entry) {
       if (options.failHistories) return json({}, 503);

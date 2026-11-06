@@ -2,6 +2,7 @@ import type { League } from "@potbot/db";
 import { Composer, type Context } from "grammy";
 import { formatLocalTime, formatTimeLeft } from "../i18n/format.js";
 import { t, toLanguage, type Language } from "../i18n/index.js";
+import { awardLines, latestAwards } from "../services/awards.js";
 import { SETUP_STATE } from "../services/league-setup.js";
 import { createLiveTables, type TableRow } from "../services/live-table.js";
 import { leagueStatus } from "../services/reminders.js";
@@ -73,6 +74,16 @@ export function statusCommands({ db, fpl, now: nowDep }: BotDeps): Composer<Cont
     add("status.unpaid", status.unpaid);
     add("status.out", status.out);
     return ctx.reply(lines.join("\n"));
+  });
+
+  composer.command("awards", async (ctx) => {
+    const language = toLanguage(ctx.from?.language_code);
+    const league = await leagueFor(ctx, language);
+    if (!league) return;
+
+    const latest = await latestAwards(db, league);
+    if (!latest) return ctx.reply(t(language, "awards.none"));
+    return ctx.reply(awardLines(language, latest.gw, latest.awards, latest.members).join("\n"));
   });
 
   composer.command("table", async (ctx) => {

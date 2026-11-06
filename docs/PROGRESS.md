@@ -34,6 +34,8 @@
 
 - [x] P5: record the pot payout. After results, the coordinator gets a card with a Paid button per winner, or sends `/payout` then a screenshot, in private or the group, which the bot reads and shows the group; `/paidout` records one by hand. The group gets "Pot delivered". Transaction numbers must be unused, but aren't checked with Telebirr, because receipt checks are deferred
 
+- [x] F1: weekly awards posted after the results, and again with `/awards`. Checked against real GW9 data. Awards count everyone with a score, paid or not, because no money is involved
+
 ## Added at the owner's request
 
 - [x] `/help`, in the group and in private, explaining what to do and the member commands. `/admin` lists the owner's and coordinator's commands, and only they can see it
