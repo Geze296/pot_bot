@@ -1,4 +1,4 @@
-import { parseRules, potFromObligations, RULE_OPTIONS, RuleError, setRule, type LeagueRules } from "@potbot/core";
+import { parseRules, RULE_OPTIONS, RuleError, setRule, type LeagueRules } from "@potbot/core";
 import type { League, Member, PrismaClient } from "@potbot/db";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { t } from "../i18n/index.js";
@@ -10,6 +10,7 @@ import { recordPayout, type Share } from "../services/payouts.js";
 import { leagueStatus } from "../services/reminders.js";
 import { ensureObligations, overrideScore, overrideWinner, type SendOptions } from "../services/settlement.js";
 import { ensureUser } from "../services/users.js";
+import { auditNames } from "./audit-names.js";
 import { verifyInitData } from "./auth.js";
 
 export type Role = "owner" | "coordinator" | "member";
@@ -297,6 +298,7 @@ export function apiRoutes(deps: RouteDeps) {
       });
       const members = await db.member.findMany({ where: { leagueId: league.id } });
       const member = (id: number) => members.find((item) => item.id === id);
+      const { scoreMode } = parseRules(league.rules);
 
       return {
         gameweeks: gameweeks.map((gameweek) => ({
@@ -328,7 +330,7 @@ export function apiRoutes(deps: RouteDeps) {
               team: score.member.fplTeamName,
               points: score.points,
               transferCost: score.transferCost,
-              net: score.points - score.transferCost,
+              net: scoreMode === "gross" ? score.points : score.points - score.transferCost,
               rank: score.rankInGw,
               source: score.source,
             }))
@@ -411,11 +413,7 @@ export function apiRoutes(deps: RouteDeps) {
 
     api.get("/leagues/:leagueId/ledger", async (request) => {
       const { league, role } = await access(request);
-      const ledger = await leagueLedger(db, league.id);
-      const obligations = await db.obligation.findMany({
-        where: { gameweek: { leagueId: league.id, status: "settled" } },
-      });
-      return { ...ledger, canExport: role !== "member", settledFees: potFromObligations(obligations, 0) };
+      return { ...(await leagueLedger(db, league.id)), canExport: role !== "member" };
     });
 
     api.post("/leagues/:leagueId/ledger/send", async (request) => {
@@ -597,16 +595,17 @@ export function apiRoutes(deps: RouteDeps) {
         orderBy: { createdAt: "desc" },
         take: 200,
       });
-      const actors = await db.user.findMany({ where: { id: { in: entries.map((entry) => entry.actorId) } } });
+      const describe = await auditNames(db, league.id, entries);
       return {
         timezone: league.timezone,
         entries: entries.map((entry) => ({
           id: entry.id,
           at: entry.createdAt,
-          actor: actors.find((actor) => actor.id === entry.actorId)?.displayName ?? "",
+          actor: describe.userName(entry.actorId),
           action: entry.action,
-          before: entry.before,
-          after: entry.after,
+          subject: describe.subject(entry),
+          before: describe.values(entry.before),
+          after: describe.values(entry.after),
         })),
       };
     });

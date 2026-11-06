@@ -41,6 +41,10 @@
 
 - [ ] O3: English and Amharic messages. Dropped at the owner's request: no Amharic. The AI writes in English by default, and `am.json` stays empty
 
+- [x] A1: Mini App with Telegram login and role checks. Dashboard, Payments, Results, Members and Rules work. Every route is tested for each role and across two leagues, and every screen was clicked through in Chrome; not yet opened inside real Telegram
+- [x] A2: season ledger per member and per gameweek. Managers get the CSV in their private chat. Tested against payments and payouts, including ties, free passes and credits
+- [x] A3: audit log screen for managers, showing who, what and when, with names instead of IDs
+
 ## Added at the owner's request
 
 - [x] `/help`, in the group and in private, explaining what to do and the member commands. `/admin` lists the owner's and coordinator's commands, and only they can see it
@@ -108,6 +112,12 @@ Chosen by Claude to fit the agreed behaviour, not yet confirmed by the owner:
 - With `whoCanWin: everyone`, an unpaid winner shares only the pot actually paid in.
 - With `lateRule: lose_free_pass`, a late payer can still win but can't earn a free pass.
 - Starting at an explicit earlier gameweek (`/setup <league> <gw>`) records results only. The past-payment choice in the PRD needs the Mini App grid, so it moves to A1.
+
+Chosen by Claude for the Mini App, not yet confirmed by the owner:
+
+- Members see the dashboard, results and ledger, including everyone's balances, because the SPEC calls for one trusted record visible to everyone. Payments, Members, Rules and Audit are for the owner and coordinator.
+- Pausing a member takes effect from the next gameweek's fee. What they already owe or paid stays.
+- The app's review queue shows details but not the screenshot, because images aren't stored (hard rule 12). The picture stays in the coordinator's private chat.
 
 Known limit: if a correction takes away a free pass from someone whose early payment already moved on as credit, the credit stays on the later gameweek and they owe the corrected fee. The coordinator sorts that out by hand.
 

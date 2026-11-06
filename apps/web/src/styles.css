@@ -1,0 +1,524 @@
+/* Telegram supplies these inside the app. The fallbacks cover a plain browser. */
+:root {
+  --bg: var(--tg-theme-secondary-bg-color, #f2f3f5);
+  --surface: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #ffffff));
+  --text: var(--tg-theme-text-color, #16181d);
+  --muted: var(--tg-theme-hint-color, #6b7280);
+  --accent: var(--tg-theme-button-color, #2481cc);
+  --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --link: var(--tg-theme-link-color, #2481cc);
+  --line: color-mix(in srgb, var(--muted) 25%, transparent);
+  --gain: #14803d;
+  --loss: #c02626;
+  --warn: #a15c07;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: var(--tg-theme-secondary-bg-color, #111418);
+    --surface: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #1c2026));
+    --text: var(--tg-theme-text-color, #f2f4f7);
+    --muted: var(--tg-theme-hint-color, #98a1ad);
+    --gain: #4ade80;
+    --loss: #f87171;
+    --warn: #fbbf24;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    15px/1.4 system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd,
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-size: 18px;
+}
+
+h2 {
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+h3 {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+main {
+  display: grid;
+  gap: 12px;
+  padding: 12px 12px 32px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 12px 0;
+}
+
+.app-header > select {
+  width: auto;
+  font-weight: 600;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  flex: none;
+  background: none;
+  color: var(--muted);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 8px 10px;
+  min-height: 40px;
+  font-weight: 500;
+}
+
+.tab.active {
+  color: var(--link);
+  border-bottom-color: var(--link);
+}
+
+.card {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.item {
+  display: block;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.card > .item:first-child,
+h2 + .item {
+  border-top: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.row > :first-child {
+  min-width: 0;
+}
+
+.end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: none;
+}
+
+.strong {
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 13px;
+}
+
+.centered {
+  text-align: center;
+  padding: 24px;
+}
+
+.hint {
+  padding: 0 4px;
+  font-size: 13px;
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pot {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown {
+  margin-top: 10px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.name-group + .name-group {
+  margin-top: 10px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.badge-good {
+  color: var(--gain);
+}
+
+.badge-warn {
+  color: var(--warn);
+}
+
+.badge-bad {
+  color: var(--loss);
+}
+
+.badge-plain {
+  color: var(--muted);
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  min-height: 42px;
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.secondary {
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+  color: var(--text);
+}
+
+button.link {
+  background: none;
+  color: var(--link);
+  padding: 4px 0;
+  min-height: 32px;
+  font-weight: 500;
+}
+
+button.danger {
+  color: var(--loss);
+}
+
+button.wide {
+  width: 100%;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+input:not([type="checkbox"], [type="range"]),
+select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  min-height: 42px;
+  min-width: 0;
+}
+
+input[type="range"] {
+  width: 100%;
+  margin-top: 8px;
+  accent-color: var(--accent);
+}
+
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: flex-end;
+}
+
+.inline-form input,
+.inline-form select {
+  margin-top: 0;
+  flex: 1;
+}
+
+.field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.form-section {
+  border-top: 1px solid var(--line);
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.form-section[open] > summary {
+  margin-bottom: 10px;
+}
+
+.form-section > * + label,
+.form-section > .field-pair,
+.form-section > button {
+  margin-top: 10px;
+}
+
+summary {
+  cursor: pointer;
+  color: var(--link);
+  font-weight: 500;
+}
+
+details.week > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  color: var(--text);
+  list-style: none;
+}
+
+details.week > summary::-webkit-details-marker,
+.ledger-row > summary::-webkit-details-marker {
+  display: none;
+}
+
+.result-summary {
+  margin-top: 10px;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.details dt {
+  color: var(--muted);
+}
+
+.details dd {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.table-wrap {
+  margin-top: 10px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+th,
+td {
+  padding: 7px 4px;
+  border-top: 1px solid var(--line);
+}
+
+thead th {
+  border-top: 0;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pick-table td:not(:first-child),
+.pick-table th:not(:first-child) {
+  text-align: center;
+}
+
+.ledger-row {
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.ledger-row > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  color: var(--text);
+  font-weight: 400;
+  list-style: none;
+}
+
+.ledger-row > summary .small {
+  display: block;
+}
+
+.gain {
+  color: var(--gain);
+}
+
+.loss {
+  color: var(--loss);
+}
+
+.week-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.week-line .num {
+  margin-left: auto;
+}
+
+.facts {
+  list-style: none;
+  margin-top: 8px;
+}
+
+.facts li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.notice {
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: var(--surface);
+}
+
+.notice-error {
+  color: var(--loss);
+}
+
+.notice-done {
+  color: var(--gain);
+}
+
+.toast {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 2;
+  max-width: 616px;
+  margin: 0 auto;
+}
+
+.toast .notice {
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+}
+
+.card > .muted + .item,
+.card > .muted + .ledger-row {
+  margin-top: 8px;
+}
+
+.change {
+  overflow-wrap: anywhere;
+}
+
+.notice-info {
+  color: var(--muted);
+  padding: 8px 0 0;
+  background: none;
+  font-size: 13px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}

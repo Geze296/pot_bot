@@ -1,10 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import en from "../../../locales/en.json";
+import { App } from "./App.js";
+import "./styles.css";
+import { startTelegram } from "./telegram.js";
 
-// Placeholder until requirement A1 builds the Mini App.
+startTelegram();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <p>{en["web.placeholder"]}</p>
+    <App />
   </StrictMode>,
 );

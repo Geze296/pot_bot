@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ledgerCsv, leagueLedger } from "../services/ledger.js";
-import { clearDatabase, createHarness, GROUP_ID, LEAGUE_ID, OWNER, ALICE, BOB } from "../testing/harness.js";
+import { clearDatabase, createHarness, GROUP_ID, LEAGUE_ID, OWNER, ALICE } from "../testing/harness.js";
 import { signInitData } from "../testing/init-data.js";
 import { apiRoutes } from "./routes.js";
 import { createApi } from "./server.js";
@@ -477,7 +477,7 @@ describe("A2: the ledger", () => {
     });
 
     expect(csv).toContain('"Abel ""The Man"""');
-    expect(csv).toContain(",'=HYPERLINK(1,2)".replace(",'", ",\"'"));
+    expect(csv).toContain(`"'=HYPERLINK(1,2)"`);
     expect(csv).toContain('"Red, White"');
     expect(csv).toContain("'+SUM(1)");
     expect(csv).toContain("'@cmd");
@@ -601,8 +601,81 @@ describe("A3: the audit log", () => {
       after: { status: "paid" },
     });
     expect(entries[0].at).toEqual(expect.any(String));
+    expect(entries[0].subject).toBe("KB Gselassie, GW10");
     expect(entries.map((entry: { action: string }) => entry.action)).toContain("telebirr.set_receiver");
     expect(entries.map((entry: { action: string }) => entry.action)).toContain("coordinator.set");
+  });
+});
+
+describe("A3: names instead of IDs", () => {
+  const latest = async () => (await call(OWNER, "GET", `/leagues/${leagueId}/audit`)).json().entries[0];
+
+  it("names the coordinator, not their ID", async () => {
+    const entry = (await call(OWNER, "GET", `/leagues/${leagueId}/audit`)).json().entries.at(-1);
+
+    expect(entry).toMatchObject({ action: "coordinator.set", after: { coordinator: "Kibrom" } });
+    expect(entry.after.coordinatorUserId).toBeUndefined();
+  });
+
+  it("names who a reviewed payment was from", async () => {
+    const obligation = await obligationOf(JAZZ);
+    const payment = await db.payment.create({
+      data: { obligationId: obligation.id, amount: 100, method: "screenshot", verifyStatus: "needs_review" },
+    });
+    await call(KIBROM, "POST", `/leagues/${leagueId}/payments/${payment.id}/decide`, { approve: true });
+
+    expect(await latest()).toMatchObject({ action: "payment.approve", subject: "Yabets M, GW10", actor: "Kibrom" });
+  });
+
+  it("names winners and the gameweek on a hand-set result", async () => {
+    await harness.tick(new Date("2026-11-06T18:30:00Z"));
+    const jazz = await memberOf(JAZZ);
+    await call(OWNER, "POST", `/leagues/${leagueId}/results/10/winner`, { winnerIds: [jazz.id] });
+
+    expect(await latest()).toMatchObject({
+      action: "result.override",
+      subject: "GW10",
+      after: { winners: "Yabets M", runnersUp: "" },
+    });
+  });
+
+  it("names who a score and a status change were for", async () => {
+    const kings = await memberOf(KINGS);
+    await call(OWNER, "POST", `/leagues/${leagueId}/members/${kings.id}/status`, { status: "paused" });
+    expect(await latest()).toMatchObject({ subject: "KB Gselassie", after: { status: "paused" } });
+
+    await call(OWNER, "POST", `/leagues/${leagueId}/results/10/score`, { memberId: kings.id, points: 50 });
+    expect(await latest()).toMatchObject({ action: "score.override", subject: "KB Gselassie" });
+  });
+
+  it("still shows an entry whose subject has gone", async () => {
+    const fact = await db.memberFact.create({
+      data: { memberId: (await memberOf(JAZZ)).id, fact: "x", source: "admin" },
+    });
+    const jazz = await memberOf(JAZZ);
+    await call(OWNER, "DELETE", `/leagues/${leagueId}/members/${jazz.id}/facts/${fact.id}`);
+
+    expect(await latest()).toMatchObject({ action: "fact.delete", before: { member: "Yabets M" } });
+  });
+});
+
+describe("results and the score rule", () => {
+  it("shows scores before hits when the league scores that way", async () => {
+    await db.league.update({ where: { id: leagueId }, data: { rules: { scoreMode: "gross" } } });
+    const gameweek = await db.gameweek.findFirstOrThrow({ where: { fplEventId: 10 } });
+    await db.gameweek.update({ where: { id: gameweek.id }, data: { status: "locked" } });
+    await db.score.create({
+      data: {
+        gameweekId: gameweek.id,
+        memberId: (await memberOf(JAZZ)).id,
+        points: 60,
+        transferCost: 8,
+        benchPoints: 0,
+      },
+    });
+
+    const { gameweeks } = (await call(ALICE, "GET", `/leagues/${leagueId}/results`)).json();
+    expect(gameweeks[0].scores[0]).toMatchObject({ points: 60, transferCost: 8, net: 60 });
   });
 });
 
@@ -622,5 +695,3 @@ describe("unexpected errors", () => {
     expect(response.json()).toEqual({ error: "bad_request" });
   });
 });
-
-void BOB;
