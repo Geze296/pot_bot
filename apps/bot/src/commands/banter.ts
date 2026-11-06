@@ -253,7 +253,13 @@ export function banterCommands(deps: BotDeps): Composer<Context> {
       .join("\n");
 
     const language = toLanguage(ctx.from.language_code);
-    const line = await aiLine(deps, league, mentionPrompt(displayName(ctx.from), ctx.message.text, table), now());
+    const line = await aiLine(
+      deps,
+      league,
+      mentionPrompt(displayName(ctx.from), ctx.message.text, table),
+      now(),
+      "ai_mention",
+    );
     return ctx.reply(line ?? t(language, "banter.template", { bot: `@${ctx.me.username}` }));
   });
 

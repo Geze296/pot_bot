@@ -182,6 +182,48 @@ describe("replies when mentioned", () => {
   });
 });
 
+describe("sharing the AI allowance", () => {
+  const CHAT_LIMIT = 20;
+  const fillChat = async (count: number) => {
+    const league = await db.league.findFirstOrThrow();
+    await db.messageLog.createMany({
+      data: Array.from({ length: count }, (_, index) => ({
+        leagueId: league.id,
+        dedupeKey: `ai-chat:old:${index}`,
+        kind: "ai_mention",
+        sentAt: harness.clock.now,
+      })),
+    });
+  };
+
+  it("mention replies stop at their own limit, leaving room for the recap and /roast", async () => {
+    await fillChat(CHAT_LIMIT);
+    await harness.say(BOB, GROUP_ID, `hi ${BOT_MENTION}`, mention(`hi ${BOT_MENTION}`));
+    expect(ai.calls).toEqual([]);
+    expect(lastTo(GROUP_ID)).toContain("busy watching the scores");
+
+    await harness.say(OWNER, GROUP_ID, `/roast ${JAZZ}`);
+    expect(ai.calls).toHaveLength(1);
+    expect(lastTo(GROUP_ID)).toBe("What a week!");
+  });
+
+  it("mention replies still count toward the league's total", async () => {
+    await fillChat(CHAT_LIMIT);
+    const league = await db.league.findFirstOrThrow();
+    await db.messageLog.createMany({
+      data: Array.from({ length: DAILY_AI_CAP - CHAT_LIMIT }, (_, index) => ({
+        leagueId: league.id,
+        dedupeKey: `ai:old:${index}`,
+        kind: "ai_text",
+        sentAt: harness.clock.now,
+      })),
+    });
+    await harness.say(OWNER, GROUP_ID, `/roast ${JAZZ}`);
+
+    expect(ai.calls).toEqual([]);
+  });
+});
+
 describe("the recap", () => {
   async function settle() {
     await harness.tick(new Date("2026-11-01T12:00:00Z"));

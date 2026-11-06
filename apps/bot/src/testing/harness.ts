@@ -38,6 +38,8 @@ export interface FplWorld {
   /** Extra history rows, by gameweek then FPL team ID. Teams left out score 30. */
   scores?: Record<number, Record<number, { points: number; cost?: number; total?: number }>>;
   fail?: boolean;
+  /** Moved deadlines, by gameweek. */
+  deadlines?: Record<number, string>;
   /** Fails only the live points, which only awards use. */
   failLive?: boolean;
   /** Replaces the league's member list, as FPL's standings rows. */
@@ -78,11 +80,11 @@ export function fixtureFetch(options: { failHistories?: boolean; world?: FplWorl
       const finished = world.finished ?? {};
       return json({
         ...bootstrap,
-        events: bootstrap.events.map((event) =>
-          finished[event.id]
-            ? { ...event, finished: true, data_checked: finished[event.id]?.dataChecked ?? false }
-            : event,
-        ),
+        events: bootstrap.events.map((event) => ({
+          ...event,
+          ...(finished[event.id] ? { finished: true, data_checked: finished[event.id]?.dataChecked ?? false } : {}),
+          ...(world.deadlines?.[event.id] ? { deadline_time: world.deadlines[event.id] } : {}),
+        })),
       });
     }
     if (path === "event-status/") return json(world.eventStatus ?? { status: [], leagues: "" });

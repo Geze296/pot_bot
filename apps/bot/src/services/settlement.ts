@@ -71,13 +71,14 @@ async function grantFreePass(tx: Tx, league: League, gameweek: Gameweek, memberI
   if (!obligation) return;
 
   if (obligation.status === "paid" && obligation.reason !== "free_pass") {
-    const following = await gameweekAfter(tx, gameweek);
-    if (following) {
+    // The next fee may be covered already, so this walks on to the first one still due.
+    for (let following = await gameweekAfter(tx, gameweek); following; following = await gameweekAfter(tx, following)) {
       await ensureObligations(tx, league, following);
-      const target = await tx.obligation.findFirst({ where: { gameweekId: following.id, memberId, reason: "entry" } });
+      const target = await tx.obligation.findFirst({ where: { gameweekId: following.id, memberId, status: "due" } });
       if (target) {
         await tx.payment.updateMany({ where: { obligationId: obligation.id }, data: { obligationId: target.id } });
         await tx.obligation.update({ where: { id: target.id }, data: { status: "paid" } });
+        break;
       }
     }
   }
@@ -341,10 +342,14 @@ async function openAndLockGameweeks(db: PrismaClient, league: League, events: Fp
     // FPL sometimes moves a deadline, for example when fixtures are rearranged.
     const deadline = new Date(event.deadline_time);
     if (deadline.getTime() !== gameweek.deadlineAt.getTime()) {
-      await db.gameweek.update({
-        where: { id: gameweek.id },
-        data: { deadlineAt: deadline, paymentClosesAt: deadline },
-      });
+      // Payment windows run from one deadline to the next, so the next window moves with it.
+      await db.$transaction([
+        db.gameweek.update({ where: { id: gameweek.id }, data: { deadlineAt: deadline, paymentClosesAt: deadline } }),
+        db.gameweek.updateMany({
+          where: { leagueId: league.id, fplEventId: gameweek.fplEventId + 1 },
+          data: { paymentOpensAt: deadline },
+        }),
+      ]);
     }
     if (now < gameweek.paymentOpensAt) continue;
 

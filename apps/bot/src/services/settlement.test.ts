@@ -112,6 +112,27 @@ describe("at the deadline", () => {
   });
 });
 
+describe("FPL moving a deadline", () => {
+  it("moves the gameweek's own deadline, and the next gameweek's window with it", async () => {
+    const moved = "2026-11-07T11:00:00Z";
+    world.deadlines = { 10: moved };
+    await harness.tick(BEFORE_DEADLINE);
+
+    const gw10 = await db.gameweek.findFirstOrThrow({ where: { fplEventId: 10 } });
+    const gw11 = await db.gameweek.findFirstOrThrow({ where: { fplEventId: 11 } });
+    expect(gw10.deadlineAt.toISOString()).toBe("2026-11-07T11:00:00.000Z");
+    expect(gw10.paymentClosesAt.toISOString()).toBe("2026-11-07T11:00:00.000Z");
+    expect(gw11.paymentOpensAt.toISOString()).toBe("2026-11-07T11:00:00.000Z");
+  });
+
+  it("doesn't lock at the old time", async () => {
+    world.deadlines = { 10: "2026-11-07T11:00:00Z" };
+    await harness.tick(GW10_DEADLINE);
+
+    expect((await db.gameweek.findFirstOrThrow({ where: { fplEventId: 10 } })).status).toBe("open");
+  });
+});
+
 describe("a stuck gameweek", () => {
   it("doesn't stop the next one opening and locking", async () => {
     await harness.tick(GW10_DEADLINE);
@@ -300,6 +321,25 @@ describe("money", () => {
     const gw12 = await obligationOf(KINGS, 12);
     expect(gw12).toMatchObject({ reason: "entry", amountDue: 100, status: "paid" });
     expect(await db.payment.count({ where: { obligationId: gw12.id, amount: 100 } })).toBe(1);
+  });
+
+  it("if the next fee is already covered too, the credit moves on to the first unpaid one", async () => {
+    await payEveryone(10);
+    await harness.tick(GW10_DEADLINE);
+    await harness.tick(new Date(GW10_DEADLINE.getTime() + HOUR));
+    await pay(KINGS, 11, new Date(GW10_DEADLINE.getTime() + HOUR));
+    const gw12 = await db.gameweek.findFirstOrThrow({ where: { fplEventId: 12 } });
+    const kings = await memberOf(KINGS);
+    await db.obligation.create({
+      data: { gameweekId: gw12.id, memberId: kings.id, amountDue: 100, reason: "entry", status: "paid" },
+    });
+
+    finishGw(10, { [JAZZ]: { points: 90 }, [KINGS]: { points: 80 } });
+    await settle();
+
+    const gw13 = await obligationOf(KINGS, 13);
+    expect(gw13).toMatchObject({ status: "paid", reason: "entry" });
+    expect(await db.payment.count({ where: { obligationId: gw13.id } })).toBe(1);
   });
 
   it("the free pass isn't counted in the following gameweek's pot, and credit is", async () => {

@@ -17,32 +17,40 @@ import { t, toLanguage } from "./i18n/index.js";
 export function createBot(token: string, deps: BotDeps, config?: BotConfig<Context>): Bot {
   const bot = new Bot(token, config);
 
-  bot.use(autoDeleteReplies(deps.scheduleDeletion));
+  // A boundary rather than bot.catch, which only works with long polling. With a webhook, an uncaught error would
+  // answer Telegram with a 500, and Telegram would keep sending the same update.
+  const app = bot.errorBoundary(async (error) => {
+    console.error("Error handling update:", error.error);
+    try {
+      await error.ctx.reply(t(toLanguage(error.ctx.from?.language_code), "common.error"));
+    } catch {
+      // Telegram itself may be the problem, and there's no one else to tell.
+    }
+  });
 
-  bot.use(joinCommands(deps));
-  bot.use(adminCommands(deps));
-  bot.use(appCommands(deps));
-  bot.use(setupCommands(deps));
-  bot.use(linkCommands(deps));
-  bot.use(overrideCommands(deps));
-  bot.use(payoutCommands(deps));
-  bot.use(rulesCommands(deps));
-  bot.use(statusCommands(deps));
+  app.use(autoDeleteReplies(deps.scheduleDeletion));
 
-  bot.command("help", (ctx) =>
+  app.use(joinCommands(deps));
+  app.use(adminCommands(deps));
+  app.use(appCommands(deps));
+  app.use(setupCommands(deps));
+  app.use(linkCommands(deps));
+  app.use(overrideCommands(deps));
+  app.use(payoutCommands(deps));
+  app.use(rulesCommands(deps));
+  app.use(statusCommands(deps));
+
+  app.command("help", (ctx) =>
     ctx.reply(t(toLanguage(ctx.from?.language_code), "help.text", { bot: `@${ctx.me.username}` })),
   );
 
-  bot.command("start", (ctx) =>
+  app.command("start", (ctx) =>
     ctx.reply(t(toLanguage(ctx.from?.language_code), "start.welcome", { name: ctx.from?.first_name ?? "" })),
   );
 
   // Last, so it only sees messages no command has handled.
-  bot.use(paymentCommands(deps));
-  bot.use(banterCommands(deps));
-
-  // A failure handling one update must not stop the bot for everyone else.
-  bot.catch((error) => console.error("Error handling update:", error.error));
+  app.use(paymentCommands(deps));
+  app.use(banterCommands(deps));
 
   return bot;
 }

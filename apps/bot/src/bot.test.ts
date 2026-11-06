@@ -114,3 +114,22 @@ describe("/app", () => {
     expect(sent[0]?.text).toContain("isn't available");
   });
 });
+
+describe("when something fails", () => {
+  it("tells the person instead of going silent", async () => {
+    const { bot, replies } = botWithCapturedReplies();
+    // No database behind it, so this command throws.
+    await bot.handleUpdate(privateMessage("/status"));
+
+    expect(replies.at(-1)?.text).toContain("Something went wrong");
+  });
+
+  it("doesn't throw if that message fails too", async () => {
+    const bot = createBot("test-token", { db: {} as never, fpl: {} as never }, { botInfo });
+    bot.api.config.use(async () => {
+      throw new Error("Telegram is down");
+    });
+
+    await expect(bot.handleUpdate(privateMessage("/status"))).resolves.toBeUndefined();
+  });
+});

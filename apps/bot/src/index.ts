@@ -7,8 +7,8 @@ import { InputFile, webhookCallback, type Bot } from "grammy";
 import { apiRoutes } from "./api/routes.js";
 import { createApi } from "./api/server.js";
 import { createBot } from "./bot.js";
+import { syncMenuButton } from "./commands/app.js";
 import { loadConfig } from "./config.js";
-import { t } from "./i18n/index.js";
 import { scheduleMessageDeletion, startJobs } from "./jobs/boss.js";
 import { syncAllLeagues } from "./services/league-sync.js";
 import { tickAllLeagues, type SendOptions } from "./services/settlement.js";
@@ -87,11 +87,10 @@ async function main(): Promise<void> {
   process.once("SIGINT", () => void shutdown());
   process.once("SIGTERM", () => void shutdown());
 
+  await syncMenuButton(bot.api, config.publicUrl);
+
   if (config.publicUrl) {
     await bot.api.setWebhook(`${config.publicUrl}${WEBHOOK_PATH}`, { secret_token: webhookSecret });
-    await bot.api.setChatMenuButton({
-      menu_button: { type: "web_app", text: t("en", "app.menu"), web_app: { url: config.publicUrl } },
-    });
     console.log(`Bot running as @${bot.botInfo.username} with a webhook at ${config.publicUrl}`);
     return;
   }

@@ -8,6 +8,8 @@ import type { SendOptions } from "./settlement.js";
 
 /** Bot messages written by AI per league per day. After this, templates take over (hard rule 15). */
 export const DAILY_AI_CAP = 30;
+/** Of those, how many can be chat replies, so a talkative group can't use up the recap's allowance. */
+const DAILY_MENTION_CAP = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const PERSONAS = ["commentator", "pundit", "grandfather"] as const;
@@ -39,14 +41,25 @@ export interface BanterDeps {
  * One AI-written message, or null if there's no key, the cap is reached, the call fails, or the text breaks a rule.
  * Callers always have a template or simply say nothing, so AI failing is never visible as an error.
  */
-export async function aiLine(deps: BanterDeps, league: League, prompt: string, now: Date): Promise<string | null> {
+export async function aiLine(
+  deps: BanterDeps,
+  league: League,
+  prompt: string,
+  now: Date,
+  kind: "ai_text" | "ai_mention" = "ai_text",
+): Promise<string | null> {
   const { db, generateText } = deps;
   if (!generateText) return null;
 
+  const since = { gte: new Date(now.getTime() - DAY_MS) };
   const used = await db.messageLog.count({
-    where: { leagueId: league.id, kind: "ai_text", sentAt: { gte: new Date(now.getTime() - DAY_MS) } },
+    where: { leagueId: league.id, kind: { in: ["ai_text", "ai_mention"] }, sentAt: since },
   });
   if (used >= DAILY_AI_CAP) return null;
+  if (kind === "ai_mention") {
+    const mentions = await db.messageLog.count({ where: { leagueId: league.id, kind, sentAt: since } });
+    if (mentions >= DAILY_MENTION_CAP) return null;
+  }
 
   const optedOut = await db.member.findMany({ where: { leagueId: league.id, roastOptOut: true } });
   const doNotMention = optedOut.flatMap((member) => [member.fplManagerName, member.fplTeamName]);
@@ -65,7 +78,7 @@ export async function aiLine(deps: BanterDeps, league: League, prompt: string, n
       data: {
         leagueId: league.id,
         dedupeKey: `ai:${now.getTime()}:${used}:${Math.random()}`,
-        kind: "ai_text",
+        kind,
         sentAt: now,
       },
     });
