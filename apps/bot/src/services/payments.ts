@@ -119,6 +119,10 @@ export async function recordDecision(
   const { league, member, decision, now } = input;
   try {
     return await db.$transaction(async (tx) => {
+      // Payouts keep their own numbers, and proof can't be used twice in any table (hard rule 6).
+      if (decision.txnId && (await tx.payout.findUnique({ where: { txnId: decision.txnId } }))) {
+        return { kind: "duplicate" };
+      }
       if (decision.kind === "review") {
         return createReview(tx, league, member, decision, decision.reason, now);
       }

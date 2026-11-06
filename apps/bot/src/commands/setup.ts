@@ -1,5 +1,5 @@
 import { Composer, InlineKeyboard, type Context } from "grammy";
-import { FplNotFoundError, parseLeagueInput } from "@potbot/fpl";
+import { FplLeagueTooBigError, FplNotFoundError, parseLeagueInput } from "@potbot/fpl";
 import type { League, Member } from "@potbot/db";
 import { formatLocalTime } from "../i18n/format.js";
 import { t, toLanguage, type Language } from "../i18n/index.js";
@@ -38,6 +38,9 @@ export function setupCommands({ db, fpl }: BotDeps): Composer<Context> {
     const language = languageOf(ctx);
     if (ctx.chat.type === "private") return ctx.reply(t(language, "setup.groupOnly"));
 
+    // Telegram shows anonymous admins as a shared bot, which would become the owner and lock everyone out.
+    if (ctx.from?.is_bot || ctx.message?.sender_chat) return ctx.reply(t(language, "setup.anonymous"));
+
     const member = await ctx.getChatMember(ctx.from!.id);
     if (member.status !== "creator" && member.status !== "administrator") {
       return ctx.reply(t(language, "setup.adminOnly"));
@@ -70,6 +73,7 @@ export function setupCommands({ db, fpl }: BotDeps): Composer<Context> {
       if (error instanceof FplNotFoundError) {
         return ctx.reply(t(language, "setup.notFound", { id: input.leagueId }));
       }
+      if (error instanceof FplLeagueTooBigError) return ctx.reply(t(language, "setup.tooBig"));
       return ctx.reply(t(language, "common.fplDown"));
     }
 

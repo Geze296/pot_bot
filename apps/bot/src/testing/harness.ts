@@ -36,7 +36,7 @@ export interface FplWorld {
   finished?: Record<number, { dataChecked?: boolean }>;
   eventStatus?: { status: { bonus_added: boolean; date: string; event: number; points: string }[]; leagues: string };
   /** Extra history rows, by gameweek then FPL team ID. Teams left out score 30. */
-  scores?: Record<number, Record<number, { points: number; cost?: number; total?: number }>>;
+  scores?: Record<number, Record<number, { points: number; cost?: number; total?: number; bench?: number }>>;
   fail?: boolean;
   /** Moved deadlines, by gameweek. */
   deadlines?: Record<number, string>;
@@ -112,7 +112,7 @@ export function fixtureFetch(options: { failHistories?: boolean; world?: FplWorl
             points: score.points,
             total_points: score.total ?? 0,
             event_transfers_cost: score.cost ?? 0,
-            points_on_bench: 0,
+            points_on_bench: score.bench ?? 0,
           };
         });
         return json({ ...history, current: [...history.current, ...extra] });

@@ -16,9 +16,12 @@ const BACKOFF_MS = 800;
 const REQUEST_TIMEOUT_MS = 5_000;
 const BETWEEN_CALLS_MS = 300;
 const BOOTSTRAP_CACHE_MS = 5 * 60 * 1000;
+/** Pot Bot is for friends' leagues. A mistyped ID could otherwise page through millions of FPL's public managers. */
+const MAX_LEAGUE_MANAGERS = 200;
 
 export class FplNotFoundError extends Error {}
 export class FplUnavailableError extends Error {}
+export class FplLeagueTooBigError extends Error {}
 
 export interface FplClientOptions {
   fetch?: typeof globalThis.fetch;
@@ -80,6 +83,7 @@ export function createFplClient(options: FplClientOptions = {}) {
       for (const row of page.standings.results) {
         managers.set(row.entry, { entry: row.entry, teamName: row.entry_name, managerName: row.player_name });
       }
+      if (managers.size > MAX_LEAGUE_MANAGERS) throw new FplLeagueTooBigError(`League ${leagueId} is too big.`);
       if (!page.standings.has_next) break;
       await sleep(BETWEEN_CALLS_MS);
       page = await get<FplStandingsPage>(standingsPath(number + 1, 1));

@@ -53,7 +53,11 @@ export async function ensureObligations(tx: Tx, league: League, gameweek: Gamewe
     memberIds: missing,
     freePassIds: isFirstRun ? league.seedFreePassMemberIds : [],
   });
-  await tx.obligation.createMany({ data: obligations.map((item) => ({ ...item, gameweekId: gameweek.id })) });
+  // skipDuplicates because the job and a member's screenshot can get here at the same moment.
+  await tx.obligation.createMany({
+    data: obligations.map((item) => ({ ...item, gameweekId: gameweek.id })),
+    skipDuplicates: true,
+  });
 }
 
 async function gameweekAfter(tx: Tx, gameweek: Gameweek): Promise<Gameweek | null> {
@@ -175,6 +179,11 @@ async function saveScores(db: PrismaClient, fpl: FplClient, gameweek: Gameweek, 
       update: {},
     });
     await db.score.updateMany({ where: { gameweekId: gameweek.id, memberId: row.id, source: "fpl" }, data });
+    // A manual score only replaces points and hits. FPL's other numbers are still right, and tie-breaks need them.
+    await db.score.updateMany({
+      where: { gameweekId: gameweek.id, memberId: row.id, source: "manual" },
+      data: { benchPoints: row.benchPoints, totalPoints: row.totalPoints },
+    });
   }
 }
 
@@ -250,7 +259,13 @@ async function trySettle(deps: SettlementDeps, league: League, gameweek: Gamewee
     const coordinator = await db.user.findUnique({ where: { id: league.coordinatorUserId ?? league.ownerUserId } });
     const key = `settle-wait:gw${event.id}`;
     if (coordinator && (await claimMessage(db, league.id, key, "settle_wait"))) {
-      await send(coordinator.telegramId, t("en", "settle.waitingForReview", { gw: event.id, count: openReviews }));
+      try {
+        await send(coordinator.telegramId, t("en", "settle.waitingForReview", { gw: event.id, count: openReviews }));
+      } catch (error) {
+        // Settling waits on this person, so they must hear about it. The next tick tries again.
+        await releaseMessage(db, league.id, key);
+        console.error(`League ${league.id} couldn't tell the coordinator about a review:`, error);
+      }
     }
     return false;
   }

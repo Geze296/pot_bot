@@ -78,7 +78,7 @@ export function joinCommands({ db }: BotDeps): Composer<Context> {
     try {
       // The userId: null condition makes this safe when two people tap the same team at once.
       const { count } = await db.member.updateMany({
-        where: { id: member.id, userId: null },
+        where: { id: member.id, userId: null, status: { not: "left" } },
         data: { userId: user.id },
       });
       if (count === 0) {

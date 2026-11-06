@@ -4,6 +4,7 @@ import { appCommands } from "./commands/app.js";
 import { autoDeleteReplies } from "./commands/auto-delete.js";
 import { banterCommands } from "./commands/banter.js";
 import type { BotDeps } from "./commands/deps.js";
+import { groupMigration } from "./commands/group-migration.js";
 import { joinCommands } from "./commands/join.js";
 import { linkCommands } from "./commands/link.js";
 import { overrideCommands } from "./commands/override.js";
@@ -30,6 +31,7 @@ export function createBot(token: string, deps: BotDeps, config?: BotConfig<Conte
 
   app.use(autoDeleteReplies(deps.scheduleDeletion));
 
+  app.use(groupMigration(deps));
   app.use(joinCommands(deps));
   app.use(adminCommands(deps));
   app.use(appCommands(deps));
