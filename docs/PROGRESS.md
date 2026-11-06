@@ -39,6 +39,8 @@
 - [x] F2: AI persona with Gemini. Recap after each gameweek, a quip added to the later reminders, `/roast` for the owner and coordinator, and replies when mentioned or replied to. `/persona` sets voice and spice. Daily cap of 30 per league, templates when there's no key, and text naming someone who sent `/nofun` is thrown away
 - [x] F3: member memory. `/fact` adds a fact, and `/me` shows the member's season and facts, with buttons to delete any of them
 
+- [ ] O3: English and Amharic messages. Dropped at the owner's request: no Amharic. The AI writes in English by default, and `am.json` stays empty
+
 ## Added at the owner's request
 
 - [x] `/help`, in the group and in private, explaining what to do and the member commands. `/admin` lists the owner's and coordinator's commands, and only they can see it

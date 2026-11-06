@@ -12,6 +12,8 @@ export interface BotDeps {
   generateText?: TextGenerator;
   downloadFile?: (fileId: string) => Promise<ScreenshotImage>;
   now?: () => Date;
+  /** The Mini App's HTTPS address. Missing locally, because Telegram requires HTTPS. */
+  webAppUrl?: string;
   /** Deletes a group reply later. Without it, replies simply stay. */
   scheduleDeletion?: ScheduleDeletion;
 }

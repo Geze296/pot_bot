@@ -1,5 +1,6 @@
 import { Bot, type BotConfig, type Context } from "grammy";
 import { adminCommands } from "./commands/admin.js";
+import { appCommands } from "./commands/app.js";
 import { autoDeleteReplies } from "./commands/auto-delete.js";
 import { banterCommands } from "./commands/banter.js";
 import type { BotDeps } from "./commands/deps.js";
@@ -20,6 +21,7 @@ export function createBot(token: string, deps: BotDeps, config?: BotConfig<Conte
 
   bot.use(joinCommands(deps));
   bot.use(adminCommands(deps));
+  bot.use(appCommands(deps));
   bot.use(setupCommands(deps));
   bot.use(linkCommands(deps));
   bot.use(overrideCommands(deps));

@@ -2,6 +2,9 @@ export interface Config {
   botToken: string;
   databaseUrl: string;
   apiPort: number;
+  apiHost: string;
+  /** The service's public HTTPS address. With it, the bot uses a webhook and offers the Mini App. */
+  publicUrl?: string;
   geminiApiKey?: string;
 }
 
@@ -16,10 +19,16 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     throw new Error(`API_PORT must be a port number, got "${env.API_PORT}".`);
   }
 
+  if (env.PUBLIC_URL && !env.PUBLIC_URL.startsWith("https://")) {
+    throw new Error("PUBLIC_URL must start with https://, because Telegram requires it.");
+  }
+
   return {
     botToken: env.BOT_TOKEN!,
     databaseUrl: env.DATABASE_URL!,
     apiPort,
+    apiHost: env.API_HOST || "127.0.0.1",
+    ...(env.PUBLIC_URL ? { publicUrl: env.PUBLIC_URL.replace(/\/+$/, "") } : {}),
     ...(env.GEMINI_API_KEY ? { geminiApiKey: env.GEMINI_API_KEY } : {}),
   };
 }

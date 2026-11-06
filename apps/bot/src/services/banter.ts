@@ -19,7 +19,7 @@ export interface PersonaSettings {
   language: LanguageMix;
 }
 
-export const DEFAULT_PERSONA: PersonaSettings = { name: "commentator", spice: 3, language: "mix" };
+export const DEFAULT_PERSONA: PersonaSettings = { name: "commentator", spice: 3, language: "en" };
 
 export function personaSettings(league: Pick<League, "persona">): PersonaSettings {
   return { ...DEFAULT_PERSONA, ...(league.persona as Partial<PersonaSettings>) };
