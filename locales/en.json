@@ -434,8 +434,11 @@
   "web.fame.biggest": "Biggest win",
   "web.fame.runnerUps": "Most runner-up finishes",
   "web.fame.winless": "Longest run without a win",
-  "web.fame.unitWins": "{value} won",
-  "web.fame.unitBirr": "{value} birr",
-  "web.fame.unitTimes": "{value} times",
-  "web.fame.unitWeeks": "{value} gameweeks"
+  "web.fame.oneWin": "1 win",
+  "web.fame.manyWins": "{value} wins",
+  "web.fame.oneTime": "once",
+  "web.fame.manyTimes": "{value} times",
+  "web.fame.oneWeek": "1 gameweek",
+  "web.fame.manyWeeks": "{value} gameweeks",
+  "web.fame.tied": "{count} people tied"
 }

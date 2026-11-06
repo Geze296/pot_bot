@@ -13,7 +13,9 @@ const BASE_URL = "https://fantasy.premierleague.com/api/";
 const USER_AGENT = "PotBot/0.1 (FPL mini-league bot)";
 const MAX_ATTEMPTS = 4;
 const BACKOFF_MS = 800;
-const REQUEST_TIMEOUT_MS = 5_000;
+const REQUEST_TIMEOUT_MS = 10_000;
+/** bootstrap-static and event live are megabytes, and the timeout covers the whole download on a slow connection. */
+const LARGE_REQUEST_TIMEOUT_MS = 45_000;
 const BETWEEN_CALLS_MS = 300;
 const BOOTSTRAP_CACHE_MS = 5 * 60 * 1000;
 /** Pot Bot is for friends' leagues. A mistyped ID could otherwise page through millions of FPL's public managers. */
@@ -36,13 +38,13 @@ export function createFplClient(options: FplClientOptions = {}) {
   const sleep = options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
   const now = options.now ?? Date.now;
 
-  async function get<T>(path: string): Promise<T> {
+  async function get<T>(path: string, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
     let lastError: unknown;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
         const response = await fetchFn(BASE_URL + path, {
           headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          signal: AbortSignal.timeout(timeoutMs),
         });
         if (response.status === 404) throw new FplNotFoundError(`FPL has nothing at ${path}`);
         if (!response.ok) throw new FplUnavailableError(`FPL returned ${response.status} for ${path}`);
@@ -62,7 +64,7 @@ export function createFplClient(options: FplClientOptions = {}) {
   async function getBootstrap(): Promise<FplBootstrap> {
     if (bootstrapCache && now() - bootstrapCache.fetchedAt < BOOTSTRAP_CACHE_MS) return bootstrapCache.value;
     try {
-      const value = await get<FplBootstrap>("bootstrap-static/");
+      const value = await get<FplBootstrap>("bootstrap-static/", LARGE_REQUEST_TIMEOUT_MS);
       bootstrapCache = { value, fetchedAt: now() };
       return value;
     } catch (error) {
@@ -139,6 +141,6 @@ export function createFplClient(options: FplClientOptions = {}) {
     getEventStatus: () => get<FplEventStatus>("event-status/"),
     getEntryHistory: (entry: number) => get<FplEntryHistory>(`entry/${entry}/history/`),
     getPicks: (entry: number, event: number) => get<FplPicks>(`entry/${entry}/event/${event}/picks/`),
-    getEventLive: (event: number) => get<FplEventLive>(`event/${event}/live/`),
+    getEventLive: (event: number) => get<FplEventLive>(`event/${event}/live/`, LARGE_REQUEST_TIMEOUT_MS),
   };
 }

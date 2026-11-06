@@ -1,5 +1,7 @@
 interface WebApp {
   initData: string;
+  colorScheme?: "light" | "dark";
+  onEvent?: (event: string, handler: () => void) => void;
   ready: () => void;
   expand: () => void;
   platform: string;
@@ -17,7 +19,15 @@ const webApp = () => window.Telegram?.WebApp;
 
 export const initData = (): string => webApp()?.initData ?? "";
 
+/** Telegram's theme can differ from the phone's, so the app's own colours follow Telegram's. */
+function applyTheme(): void {
+  const scheme = webApp()?.colorScheme;
+  if (scheme) document.documentElement.dataset.theme = scheme;
+}
+
 export function startTelegram(): void {
+  applyTheme();
+  webApp()?.onEvent?.("themeChanged", applyTheme);
   webApp()?.ready();
   webApp()?.expand();
 }

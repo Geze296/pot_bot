@@ -1,14 +1,24 @@
 import { request, type Ledger } from "../api.js";
-import { leaders, signed } from "../format.js";
+import { leaders, namesOrCount, signed } from "../format.js";
 import { text, type TextKey } from "../text.js";
 import { ActionNotices, Card, FeeBadge, Loading, useAction, useLoad } from "../ui.js";
 
 function HallOfFame({ stats }: { stats: Ledger["stats"] }) {
-  const records: { label: TextKey; value: (row: Ledger["stats"][number]) => number; unit: TextKey }[] = [
-    { label: "web.fame.wins", value: (row) => row.wins, unit: "web.fame.unitWins" },
-    { label: "web.fame.biggest", value: (row) => row.biggestWin, unit: "web.fame.unitBirr" },
-    { label: "web.fame.runnerUps", value: (row) => row.runnerUps, unit: "web.fame.unitTimes" },
-    { label: "web.fame.winless", value: (row) => row.longestWinless, unit: "web.fame.unitWeeks" },
+  const records: {
+    label: TextKey;
+    value: (row: Ledger["stats"][number]) => number;
+    one: TextKey;
+    many: TextKey;
+  }[] = [
+    { label: "web.fame.wins", value: (row) => row.wins, one: "web.fame.oneWin", many: "web.fame.manyWins" },
+    { label: "web.fame.biggest", value: (row) => row.biggestWin, one: "web.birr", many: "web.birr" },
+    { label: "web.fame.runnerUps", value: (row) => row.runnerUps, one: "web.fame.oneTime", many: "web.fame.manyTimes" },
+    {
+      label: "web.fame.winless",
+      value: (row) => row.longestWinless,
+      one: "web.fame.oneWeek",
+      many: "web.fame.manyWeeks",
+    },
   ];
   const held = records.flatMap((record) => {
     const top = leaders(stats, record.value);
@@ -18,15 +28,20 @@ function HallOfFame({ stats }: { stats: Ledger["stats"] }) {
 
   return (
     <Card title={text("web.fame.title")}>
-      {held.map(({ label, unit, top }) => (
-        <div className="item" key={label}>
-          <p className="muted small">{text(label)}</p>
-          <div className="row">
-            <span className="strong">{top.rows.map((row) => row.manager).join(" & ")}</span>
-            <span className="num">{text(unit, { value: top.value })}</span>
+      {held.map(({ label, one, many, top }) => {
+        const names = namesOrCount(top.rows.map((row) => row.manager));
+        return (
+          <div className="item" key={label}>
+            <p className="muted small">{text(label)}</p>
+            <div className="row">
+              <span className="strong">
+                {typeof names === "number" ? text("web.fame.tied", { count: names }) : names}
+              </span>
+              <span className="num">{text(top.value === 1 ? one : many, { value: top.value, amount: top.value })}</span>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </Card>
   );
 }

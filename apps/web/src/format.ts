@@ -48,3 +48,8 @@ export function leaders<T>(rows: T[], valueOf: (row: T) => number): { rows: T[];
   const value = Math.max(0, ...rows.map(valueOf));
   return value > 0 ? { rows: rows.filter((row) => valueOf(row) === value), value } : null;
 }
+
+/** Too many names to read means a count instead. */
+export function namesOrCount(names: string[], max = 3): string | number {
+  return names.length > max ? names.length : names.join(" & ");
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changes, dateTime, leaders, signed, timeLeft } from "./format.js";
+import { changes, dateTime, leaders, namesOrCount, signed, timeLeft } from "./format.js";
 
 describe("dateTime", () => {
   it("shows the league's time zone, not the phone's", () => {
@@ -63,5 +63,12 @@ describe("leaders", () => {
   it("gives nobody a record of zero", () => {
     expect(leaders([{ wins: 0 }], value)).toBeNull();
     expect(leaders([], value)).toBeNull();
+  });
+});
+
+describe("namesOrCount", () => {
+  it("joins a few names, and counts many", () => {
+    expect(namesOrCount(["A", "B", "C"])).toBe("A & B & C");
+    expect(namesOrCount(["A", "B", "C", "D"])).toBe(4);
   });
 });

@@ -26,6 +26,20 @@
   }
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --gain: #14803d;
+  --loss: #c02626;
+  --warn: #a15c07;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --gain: #4ade80;
+  --loss: #f87171;
+  --warn: #fbbf24;
+}
+
 * {
   box-sizing: border-box;
 }

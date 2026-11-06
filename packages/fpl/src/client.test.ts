@@ -68,6 +68,25 @@ describe("FPL requests", () => {
   });
 });
 
+describe("timeouts", () => {
+  it("gives the large downloads longer, so a slow connection can finish them", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const client = createFplClient({
+      fetch: async () => json({ status: [], events: [], elements: [] }),
+      sleep: noSleep,
+    });
+
+    await client.getEventStatus();
+    expect(timeout).toHaveBeenLastCalledWith(10_000);
+    await client.getBootstrap();
+    expect(timeout).toHaveBeenLastCalledWith(45_000);
+    await client.getEventLive(9);
+    expect(timeout).toHaveBeenLastCalledWith(45_000);
+
+    timeout.mockRestore();
+  });
+});
+
 describe("bootstrap cache", () => {
   const boot = { events: [], teams: [], elements: [] };
 
