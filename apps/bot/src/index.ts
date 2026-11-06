@@ -22,7 +22,8 @@ const WEBHOOK_REPLY_AFTER_MS = 9_000;
 async function main(): Promise<void> {
   const config = loadConfig(process.env);
 
-  const db = createDb(config.databaseUrl);
+  const dbOptions = config.databaseCaCert ? { caCert: config.databaseCaCert } : {};
+  const db = createDb(config.databaseUrl, dbOptions);
   const fpl = createFplClient();
   const ai = config.geminiApiKey
     ? {
@@ -42,11 +43,15 @@ async function main(): Promise<void> {
     bot.api.sendMessage(Number(chatId), text, options);
   // Fails here on a bad token, before anything starts. It also gives the username for claim links.
   await bot.init();
-  const boss = await startJobs(config.databaseUrl, {
-    tick: () => tickAllLeagues({ db, fpl, send, ...ai }, new Date()),
-    sync: () => syncAllLeagues({ db, fpl, send, botUsername: bot.botInfo.username }),
-    deleteMessage: (chatId, messageId) => bot.api.deleteMessage(chatId, messageId),
-  });
+  const boss = await startJobs(
+    config.databaseUrl,
+    {
+      tick: () => tickAllLeagues({ db, fpl, send, ...ai }, new Date()),
+      sync: () => syncAllLeagues({ db, fpl, send, botUsername: bot.botInfo.username }),
+      deleteMessage: (chatId, messageId) => bot.api.deleteMessage(chatId, messageId),
+    },
+    dbOptions,
+  );
 
   // Derived from the token, so there's no extra secret to manage. Only Telegram is told it.
   const webhookSecret = createHmac("sha256", config.botToken).update("telegram-webhook").digest("hex");

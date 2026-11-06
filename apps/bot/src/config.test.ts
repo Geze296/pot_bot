@@ -32,6 +32,31 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ ...valid, PUBLIC_URL: "http://bot.example.com" })).toThrow("https://");
   });
 
+  it("uses the port and address a host like Render provides", () => {
+    const config = loadConfig({ ...valid, PORT: "10000", RENDER_EXTERNAL_URL: "https://pot-bot.onrender.com" });
+
+    expect(config.apiPort).toBe(10000);
+    expect(config.publicUrl).toBe("https://pot-bot.onrender.com");
+  });
+
+  it("prefers settings you've chosen yourself over the host's", () => {
+    const config = loadConfig({
+      ...valid,
+      API_PORT: "3000",
+      PORT: "10000",
+      PUBLIC_URL: "https://bot.example.com",
+      RENDER_EXTERNAL_URL: "https://pot-bot.onrender.com",
+    });
+
+    expect(config.apiPort).toBe(3000);
+    expect(config.publicUrl).toBe("https://bot.example.com");
+  });
+
+  it("reads the database's private certificate", () => {
+    expect(loadConfig({ ...valid, DATABASE_CA_CERT: "PEM" }).databaseCaCert).toBe("PEM");
+    expect(loadConfig(valid).databaseCaCert).toBeUndefined();
+  });
+
   it("rejects a bad API port", () => {
     expect(() => loadConfig({ ...valid, API_PORT: "abc" })).toThrow("API_PORT");
   });
