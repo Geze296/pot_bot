@@ -1,3 +1,4 @@
+import { createFplClient } from "@potbot/fpl";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ledgerCsv, leagueLedger } from "../services/ledger.js";
@@ -15,7 +16,7 @@ const KINGS = 4161001;
 const NAT_FC = 3052815;
 
 const harness = createHarness();
-const { db, world } = harness;
+const { db, fpl, world } = harness;
 const posts: { chatId: bigint; text: string }[] = [];
 const documents: { chatId: bigint; filename: string; content: string }[] = [];
 let documentsFail = false;
@@ -51,6 +52,7 @@ beforeAll(async () => {
     checkDb: async () => {},
     routes: apiRoutes({
       db,
+      fpl,
       botToken: TOKEN,
       now: () => NOW,
       send: async (chatId, text) => {
@@ -117,6 +119,7 @@ describe("A1: who can do what", () => {
     ["dashboard", "GET", () => `/leagues/${leagueId}/dashboard`],
     ["results", "GET", () => `/leagues/${leagueId}/results`],
     ["ledger", "GET", () => `/leagues/${leagueId}/ledger`],
+    ["table", "GET", () => `/leagues/${leagueId}/table`],
   ];
   const MANAGERS: Check[] = [
     ["payments", "GET", () => `/leagues/${leagueId}/payments`],
@@ -229,6 +232,64 @@ describe("dashboard", () => {
       yourStatus: { status: "paid", reason: "entry" },
     });
     expect(data.unpaid).toHaveLength(9);
+  });
+});
+
+describe("the table", () => {
+  it("shows the gameweek after hits and the overall table, and which team is yours", async () => {
+    const data = (await call(ALICE, "GET", `/leagues/${leagueId}/table`)).json();
+
+    expect(data.yourTeam).toBe("Jazz");
+    expect(data.table.event).toBe(9);
+    expect(data.table.finished).toBe(true);
+    expect(data.table.gameweek[0]).toEqual({ team: "Jazz", value: 75, rank: 1 });
+    expect(data.table.gameweek.find((row: { team: string }) => row.team === "Nat FC").value).toBe(44);
+    expect(data.table.overall[0]).toEqual({ team: "Jazz", value: 583, rank: 1 });
+  });
+
+  it("explains when FPL is down and nothing is cached", async () => {
+    const fresh = await createApi({
+      checkDb: async () => {},
+      routes: apiRoutes({
+        db,
+        fpl: createFplClient({ fetch: async () => new Response("{}", { status: 503 }), sleep: async () => {} }),
+        botToken: TOKEN,
+        now: () => NOW,
+        send: async () => {},
+        sendDocument: async () => {},
+      }),
+    });
+    const response = await fresh.inject({
+      method: "GET",
+      url: `/api/leagues/${leagueId}/table`,
+      headers: { authorization: `tma ${signInitData(ALICE, TOKEN, NOW)}` },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({ error: "fpl_down" });
+  });
+});
+
+describe("how to pay, on the dashboard", () => {
+  const dashboard = async () => (await call(ALICE, "GET", `/leagues/${leagueId}/dashboard`)).json();
+
+  it("gives the fee and who to pay while it's due", async () => {
+    await call(OWNER, "POST", `/leagues/${leagueId}/telebirr`, { name: "Kibrom" });
+
+    expect(await dashboard()).toMatchObject({
+      yourStatus: { status: "due", amountDue: 100 },
+      receiver: "Kibrom",
+      yourPaymentInReview: false,
+    });
+  });
+
+  it("says when their payment is under review", async () => {
+    const obligation = await obligationOf(JAZZ);
+    await db.payment.create({
+      data: { obligationId: obligation.id, amount: 100, method: "screenshot", verifyStatus: "needs_review" },
+    });
+
+    expect((await dashboard()).yourPaymentInReview).toBe(true);
   });
 });
 

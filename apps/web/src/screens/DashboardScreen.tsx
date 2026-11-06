@@ -65,6 +65,21 @@ export function DashboardScreen({ leagueId }: { leagueId: number }) {
         </Card>
       )}
 
+      {data.yourPaymentInReview && <Card>{text("web.pay.inReview")}</Card>}
+      {data.yourStatus?.status === "due" && !data.yourPaymentInReview && (
+        <Card title={text("web.pay.title")}>
+          <ol className="steps">
+            <li>
+              {text("web.pay.send", {
+                amount: data.yourStatus.amountDue,
+                receiver: data.receiver ?? text("reminder.theCoordinator"),
+              })}
+            </li>
+            <li>{text("web.pay.screenshot")}</li>
+          </ol>
+        </Card>
+      )}
+
       {data.lastResult && (
         <Card>
           <p className="eyebrow">{text("web.dashboard.lastWinner", { gw: data.lastResult.event })}</p>

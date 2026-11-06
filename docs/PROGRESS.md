@@ -52,6 +52,8 @@
 
 - [x] Telegram's `/` menu lists the commands, with the manager ones for group admins. `/owe` says what you owe and who to send it to
 
+- [x] Mini App: a Table tab with live gameweek scores after hits and the overall table, and a How to pay card on the Dashboard while you owe
+
 ## Review before going live
 
 A strict review of money, repeat runs and security fixed: moved FPL deadlines, credit stacking on a covered fee, chat using up the AI allowance, webhook errors being re-sent by Telegram, a group's chat ID changing on upgrade, anonymous admins becoming owner, mistyped IDs of huge public leagues, payout numbers being reusable as payments, claiming a team that left, manual scores losing bench and overall points, and a lost "settling is waiting" message.

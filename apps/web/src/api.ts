@@ -39,6 +39,8 @@ export interface Dashboard {
   timezone: string;
   team: string | null;
   yourStatus: { status: string; reason: string; amountDue: number } | null;
+  yourPaymentInReview: boolean;
+  receiver: string | null;
   gameweek: { event: number; deadlineAt: string; status: string } | null;
   pot: number;
   paid: string[];
@@ -47,6 +49,17 @@ export interface Dashboard {
   unpaid: string[];
   out: string[];
   lastResult: { event: number; winners: string[] } | null;
+}
+
+export interface TableRow {
+  team: string;
+  value: number;
+  rank: number;
+}
+
+export interface LiveTable {
+  yourTeam: string | null;
+  table: { event: number; finished: boolean; gameweek: TableRow[]; overall: TableRow[] } | null;
 }
 
 export interface Payments {

@@ -57,6 +57,7 @@ async function main(): Promise<void> {
     webDir: fileURLToPath(new URL("../../web/dist", import.meta.url)),
     routes: apiRoutes({
       db,
+      fpl,
       botToken: config.botToken,
       send,
       sendDocument: (chatId, filename, content) =>

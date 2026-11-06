@@ -414,5 +414,16 @@
   "menu.payout": "Record sending a winner their share, with a screenshot",
   "menu.markpaid": "Record cash or another payment",
   "menu.override": "Correct a score or name a winner",
-  "menu.roast": "Roast someone's FPL decisions"
+  "menu.roast": "Roast someone's FPL decisions",
+  "web.tab.table": "Table",
+  "web.table.none": "No gameweek has started yet.",
+  "web.table.live": "Live",
+  "web.table.final": "Final",
+  "web.table.afterHits": "Scores after transfer hits.",
+  "web.table.overall": "Overall",
+  "web.error.fpl_down": "I can't reach FPL right now. Please try again in a few minutes.",
+  "web.pay.title": "How to pay",
+  "web.pay.send": "Send {amount} birr to {receiver} on Telebirr.",
+  "web.pay.screenshot": "Send your Telebirr screenshot to me in a private chat, or post it in the group and mention me.",
+  "web.pay.inReview": "Your payment is waiting on the coordinator. Nothing else to do."
 }

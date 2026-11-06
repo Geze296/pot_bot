@@ -7,6 +7,7 @@ import { MembersScreen } from "./screens/MembersScreen.js";
 import { PaymentsScreen } from "./screens/PaymentsScreen.js";
 import { ResultsScreen } from "./screens/ResultsScreen.js";
 import { RulesScreen } from "./screens/RulesScreen.js";
+import { TableScreen } from "./screens/TableScreen.js";
 import { initData } from "./telegram.js";
 import { text, type TextKey } from "./text.js";
 import { Card, Loading, useLoad } from "./ui.js";
@@ -18,6 +19,7 @@ function tabsFor(league: LeagueRef): Tab[] {
   const canManage = league.role !== "member";
   const forEveryone: Tab[] = [
     { key: "dashboard", label: "web.tab.dashboard", screen: () => <DashboardScreen leagueId={leagueId} /> },
+    { key: "table", label: "web.tab.table", screen: () => <TableScreen leagueId={leagueId} /> },
     {
       key: "results",
       label: "web.tab.results",
@@ -30,9 +32,10 @@ function tabsFor(league: LeagueRef): Tab[] {
   // What a member can't open isn't offered. The server refuses it anyway.
   return [
     forEveryone[0]!,
-    { key: "payments", label: "web.tab.payments", screen: () => <PaymentsScreen leagueId={leagueId} /> },
     forEveryone[1]!,
+    { key: "payments", label: "web.tab.payments", screen: () => <PaymentsScreen leagueId={leagueId} /> },
     forEveryone[2]!,
+    forEveryone[3]!,
     {
       key: "members",
       label: "web.tab.members",

@@ -239,6 +239,7 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
 
   return {
     db,
+    fpl,
     calls,
     world,
     posts,

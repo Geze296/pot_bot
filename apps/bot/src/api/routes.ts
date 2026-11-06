@@ -1,9 +1,11 @@
 import { parseRules, RULE_OPTIONS, RuleError, setRule, type LeagueRules } from "@potbot/core";
 import type { League, Member, PrismaClient } from "@potbot/db";
+import type { FplClient } from "@potbot/fpl";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { t } from "../i18n/index.js";
 import { personaSettings, PERSONAS, type PersonaName } from "../services/banter.js";
 import { leagueLedger, ledgerCsv } from "../services/ledger.js";
+import { createLiveTables } from "../services/live-table.js";
 import { SETUP_STATE } from "../services/league-setup.js";
 import { decideReview, markPaid, markUnpaid } from "../services/payments.js";
 import { recordPayout, type Share } from "../services/payouts.js";
@@ -17,6 +19,7 @@ export type Role = "owner" | "coordinator" | "member";
 
 export interface RouteDeps {
   db: PrismaClient;
+  fpl: FplClient;
   botToken: string;
   send: (chatId: bigint, text: string, options?: SendOptions) => Promise<unknown>;
   sendDocument: (chatId: bigint, filename: string, content: string) => Promise<unknown>;
@@ -61,6 +64,7 @@ export function roleIn(league: League, userId: number, isMember: boolean): Role 
 export function apiRoutes(deps: RouteDeps) {
   const { db } = deps;
   const now = () => deps.now?.() ?? new Date();
+  const liveTable = createLiveTables(db, deps.fpl, () => now().getTime());
 
   return async function routes(api: FastifyInstance): Promise<void> {
     api.setErrorHandler((error, _request, reply: FastifyReply) => {
@@ -176,11 +180,17 @@ export function apiRoutes(deps: RouteDeps) {
           ? await db.obligation.findFirst({ where: { gameweekId: status.gameweek.id, memberId: member.id } })
           : null;
 
+      const yourReviews = yours
+        ? await db.payment.count({ where: { obligationId: yours.id, verifyStatus: "needs_review" } })
+        : 0;
+
       return {
         role,
         timezone: league.timezone,
         team: member?.fplTeamName ?? null,
         yourStatus: yours ? { status: yours.status, reason: yours.reason, amountDue: yours.amountDue } : null,
+        yourPaymentInReview: yourReviews > 0,
+        receiver: league.coordinatorTelebirrName,
         gameweek: status
           ? {
               event: status.gameweek.fplEventId,
@@ -198,6 +208,16 @@ export function apiRoutes(deps: RouteDeps) {
           ? { event: latest.fplEventId, winners: latest.result.winnerMemberIds.map(nameOf) }
           : null,
       };
+    });
+
+    api.get("/leagues/:leagueId/table", async (request) => {
+      const { league, member } = await access(request);
+      try {
+        return { yourTeam: member?.fplTeamName ?? null, table: await liveTable(league) };
+      } catch (error) {
+        console.error("Couldn't build the live table:", error);
+        throw new ApiError(503, "fpl_down");
+      }
     });
 
     api.get("/leagues/:leagueId/payments", async (request) => {
