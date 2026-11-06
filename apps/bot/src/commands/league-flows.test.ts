@@ -100,7 +100,7 @@ describe("first pot gameweek", () => {
     expect(await db.league.count()).toBe(0);
   });
 
-  it("starts at the next gameweek by itself, records no past results, and seeds the previous runner-up's free pass", async () => {
+  it("starts at the next gameweek by itself, records no past results, and seeds the free passes from the previous gameweek", async () => {
     await linkLeague();
 
     const league = await db.league.findFirstOrThrow();
@@ -121,9 +121,9 @@ describe("first pot gameweek", () => {
 
     const texts = harness.takeTexts().join("\n");
     expect(texts).toContain("First pot gameweek: GW10");
-    expect(texts).toContain("Free pass for GW10: Ephrem T (runner-up in GW9)");
+    expect(texts).toContain("Free pass for GW10: Yabets M & Ephrem T (winner and runner-up in GW9)");
     expect(texts).toContain("GW10 deadline: Fri 6 Nov, 21:30");
-    expect(texts).not.toContain("winner");
+    expect(texts).not.toContain("Season so far");
   });
 
   it("posts a deep link for members to claim a team", async () => {

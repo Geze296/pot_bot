@@ -1,6 +1,6 @@
 {
   "start.welcome": "Hi {name}! I'm Pot Bot. I track your FPL league's weekly pot, check Telebirr payments and post the results. I never hold or send money. Send /help to see how it works.",
-  "help.text": "How Pot Bot works\nEach gameweek, everyone pays the entry fee to the coordinator on Telebirr. The highest score after transfer hits wins the pot, and the runner-up skips the next fee. Pot Bot keeps track and checks payments, but it never holds or sends money.\n\nWhat to do\n1. Tap Claim my team in the group, press Start and pick your team. Do this once.\n2. Before the deadline, send the fee to the coordinator on Telebirr.\n3. Send your Telebirr screenshot to me in private, or post it in the group and mention {bot}.\n\nIf you don't pay by the deadline, you can't win that gameweek, and you owe nothing for it. If I can't confirm a screenshot, the coordinator checks it.\n\nCommands\n/status: who has paid, the pot and the time left\n/owe: what you owe, and who to send it to (in private)\n/table: this gameweek's scores and the overall table\n/awards: last gameweek's awards\n/app: open the dashboard, results and ledger\n/me: your season and what I know about you (in private)\n/nofun: stop being roasted\n/help: this message\n\nOwner or coordinator? Send /admin for your commands. To start a league, a group admin sends /setup <league link> in the group.",
+  "help.text": "How Pot Bot works\nEach gameweek, everyone pays the entry fee to the coordinator on Telebirr. The highest score after transfer hits wins the pot, and the winner and runner-up both skip the next fee. The coordinator collects the money, so their own fee is counted automatically. Pot Bot keeps track and checks payments, but it never holds or sends money.\n\nWhat to do\n1. Tap Claim my team in the group, press Start and pick your team. Do this once.\n2. Before the deadline, send the fee to the coordinator on Telebirr.\n3. Send your Telebirr screenshot to me in private, or post it in the group and mention {bot}.\n\nIf you don't pay by the deadline, you can't win that gameweek, and you owe nothing for it. If I can't confirm a screenshot, the coordinator checks it.\n\nCommands\n/status: who has paid, the pot and the time left\n/owe: what you owe, and who to send it to (in private)\n/table: this gameweek's scores and the overall table\n/awards: last gameweek's awards\n/app: open the dashboard, results and ledger\n/me: your season and what I know about you (in private)\n/nofun: stop being roasted\n/help: this message\n\nOwner or coordinator? Send /admin for your commands. To start a league, a group admin sends /setup <league link> in the group.",
   "admin.text": "Commands for the owner and coordinator\n\nPayouts\n/payout: then send the Telebirr screenshot, and the group is told the pot was delivered\n/paidout <gameweek> <team ID> [transaction]: record a payout without a screenshot\n\nPayments\n/settelebirr <name>: the name payments must go to\n/markpaid <team ID>: record cash or another payment\n/markunpaid <team ID>: undo a payment\n\nResults\n/override: correct a score or name a winner\n\nLeague\n/setup <league link>: link this group to an FPL league\n/coordinator: reply to someone to make them coordinator\n/rules: show the league's rules\n/setrule <name> <value>: change a rule\n/link <team ID>: reply to someone to link them to a team\n/unlink <team ID>: remove a link\n\nFun\n/roast: reply to someone, or give @username or team ID\n/fact <team ID> <text>: tell me something about someone\n/persona <name> [spice 1-5]: choose my voice",
   "common.error": "Something went wrong. Please try again.",
   "common.fplDown": "I can't reach FPL right now. Please try again in a few minutes.",
@@ -28,7 +28,7 @@
   "setup.seasonLine": "GW{gw}: winner {winners}. Runner-up {runnersUp}.",
   "setup.seasonEmpty": "No gameweeks have been played in the bot yet.",
   "setup.nobody": "nobody",
-  "setup.seedFreePass": "Free pass for GW{gw}: {names} (runner-up in GW{previous}).",
+  "setup.seedFreePass": "Free pass for GW{gw}: {names} (winner and runner-up in GW{previous}).",
   "setup.nextDeadline": "GW{gw} deadline: {deadline}.",
   "setup.joinPrompt": "Everyone: tap the button, press Start, and pick your team. I can only message you privately after that.",
   "setup.joinButton": "Claim my team",
@@ -440,5 +440,10 @@
   "web.fame.manyTimes": "{value} times",
   "web.fame.oneWeek": "1 gameweek",
   "web.fame.manyWeeks": "{value} gameweeks",
-  "web.fame.tied": "{count} people tied"
+  "web.fame.tied": "{count} people tied",
+  "settle.collectorLine": "{name} gets {amount} birr, and already holds it as the collector.",
+  "web.payments.collector": "Collects the fees",
+  "web.rule.winnerPerk": "Winner perk",
+  "web.rule.winnerPerk.skip_next": "Skips the next fee",
+  "web.rule.winnerPerk.off": "None"
 }

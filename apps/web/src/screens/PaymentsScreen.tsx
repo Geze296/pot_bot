@@ -79,7 +79,8 @@ export function PaymentsScreen({ leagueId }: { leagueId: number }) {
                 </div>
                 <div className="end">
                   <FeeBadge status={member.status} reason={member.reason} />
-                  {!isFreePass && (
+                  {member.isCollector && <span className="muted small">{text("web.payments.collector")}</span>}
+                  {!isFreePass && !member.isCollector && (
                     <button
                       className="link"
                       disabled={action.busy}

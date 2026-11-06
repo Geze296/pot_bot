@@ -140,7 +140,17 @@ export interface SentCall {
 
 let updateId = 0;
 
-export function createHarness(options: { chatMemberStatus?: string; failHistories?: boolean } = {}) {
+export function createHarness(
+  options: {
+    chatMemberStatus?: string;
+    failHistories?: boolean;
+    /**
+     * In the saved data, Jazz won GW9 and so starts with a free pass. Most tests use Jazz as an ordinary member who
+     * owes, so by default only the runner-up is seeded. Tests about free passes themselves set this.
+     */
+    realSeed?: boolean;
+  } = {},
+) {
   const db = createDb(TEST_DATABASE_URL);
   const world: FplWorld = {};
   // The clock jumps on every read, so the bootstrap cache never hides a change a test makes to the world.
@@ -289,8 +299,8 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
     },
     say: (from: Person, chatId: number, text: string, extra?: object) =>
       bot.handleUpdate(message(from, chatId, text, extra)),
-    tap: (from: Person, chatId: number, data: string, callbackExtra: object = {}) =>
-      bot.handleUpdate({
+    tap: async (from: Person, chatId: number, data: string, callbackExtra: object = {}) => {
+      await bot.handleUpdate({
         update_id: ++updateId,
         callback_query: {
           id: String(updateId),
@@ -308,7 +318,14 @@ export function createHarness(options: { chatMemberStatus?: string; failHistorie
             text: "",
           },
         },
-      } as Update),
+      } as Update);
+      if (data === "setup:confirm" && !options.realSeed) {
+        const ephrem = await db.member.findFirst({ where: { fplEntryId: 11201236 }, orderBy: { id: "desc" } });
+        if (ephrem) {
+          await db.league.update({ where: { id: ephrem.leagueId }, data: { seedFreePassMemberIds: [ephrem.id] } });
+        }
+      }
+    },
   };
 }
 

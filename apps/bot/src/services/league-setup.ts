@@ -125,9 +125,8 @@ export async function backfillSeason(
     const rows = scoresForEvent(event.id, members, histories);
     if (rows.length > 0) season.push({ eventId: event.id, ranking: rankGameweek(rows) });
   }
-  const seedFreePassMemberIds = previous
-    ? rankGameweek(scoresForEvent(previous.id, members, histories)).runnerUpIds
-    : [];
+  const previousRanking = previous ? rankGameweek(scoresForEvent(previous.id, members, histories)) : undefined;
+  const seedFreePassMemberIds = previousRanking ? [...previousRanking.winnerIds, ...previousRanking.runnerUpIds] : [];
 
   await db.$transaction(async (tx) => {
     for (const event of potEvents) {

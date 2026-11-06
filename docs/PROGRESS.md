@@ -75,13 +75,15 @@ Confirmed by the owner:
 
 - A tied 1st place that doesn't divide evenly: each winner gets the floor share, and the leftover birr rolls into the next pot.
 - Only paid members are ranked for winner and runner-up. A free pass counts as paid.
+- The winner and the runner-up both skip the next gameweek's fee. With 10 players that makes an 800 birr pot. Everyone tied for 1st or 2nd gets a pass, so a tie can make it 700.
+- The coordinator collects the money, and in our league also plays (Kibrom, as KB Gselassie). Their fee is counted as paid automatically and stays in the pot. They're never reminded and nothing is posted about it. If they win or share a win, their share counts as delivered, with no payout request or "Pot delivered".
 - The payment window opens at the previous gameweek's deadline.
 - A member who misses the deadline has their obligation waived: they owe nothing, can't win, and the pot is smaller.
 - A member who pays early and then earns a free pass keeps the payment as a credit toward their next entry fee. It isn't counted in that gameweek's pot.
 - Unpaid members are reminded both in the group (@mention) and by private message: once with 2 days left, twice with 1 day left, four times on deadline day. At the deadline the group gets a list of who is participating.
 - Our league: FPL classic league 1680179 ("Office", 11 managers). On going live, the bot starts at whichever gameweek is next.
 - Gameweeks before that are ignored completely: no past results or money in the bot.
-- The runner-up of the gameweek before the start gets a free pass for the first one.
+- The winner and runner-up of the gameweek before the start get a free pass for the first one.
 - If a screenshot can't be read, it goes to the coordinator's private chat with Approve/Reject buttons, and an approved payment is then shown in the group. Settling waits if one sent before the deadline is still open.
 - Telebirr receipt-page verification is off for now. Payment is checked from the screenshot instead (see below).
 - A screenshot dated after the deadline is rejected for this gameweek and counts toward the next one.

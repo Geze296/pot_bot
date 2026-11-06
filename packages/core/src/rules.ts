@@ -5,6 +5,7 @@ export interface LeagueRules {
   /** Percent of the pot for each finishing place. Must add up to 100. */
   prizeShares: number[];
   runnerUpPerk: "skip_next" | "half_price" | "off";
+  winnerPerk: "skip_next" | "off";
   whoCanWin: "paid_only" | "everyone";
   scoreMode: "net" | "gross";
   tieFirst: "split" | "tie_break";
@@ -18,6 +19,7 @@ export const DEFAULT_RULES: LeagueRules = {
   entryFee: 100,
   prizeShares: [100],
   runnerUpPerk: "skip_next",
+  winnerPerk: "skip_next",
   whoCanWin: "paid_only",
   scoreMode: "net",
   tieFirst: "split",
@@ -29,6 +31,7 @@ export const DEFAULT_RULES: LeagueRules = {
 /** The choices for each rule that has a fixed list. */
 export const RULE_OPTIONS = {
   runnerUpPerk: ["skip_next", "half_price", "off"],
+  winnerPerk: ["skip_next", "off"],
   whoCanWin: ["paid_only", "everyone"],
   scoreMode: ["net", "gross"],
   tieFirst: ["split", "tie_break"],
@@ -72,6 +75,8 @@ export function setRule(rules: LeagueRules, key: string, value: string): LeagueR
       return { ...rules, prizeShares: parseShares(value) };
     case "runnerUpPerk":
       return { ...rules, runnerUpPerk: oneOf(value, RULE_OPTIONS.runnerUpPerk) };
+    case "winnerPerk":
+      return { ...rules, winnerPerk: oneOf(value, RULE_OPTIONS.winnerPerk) };
     case "whoCanWin":
       return { ...rules, whoCanWin: oneOf(value, RULE_OPTIONS.whoCanWin) };
     case "scoreMode":

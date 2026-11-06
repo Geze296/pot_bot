@@ -81,12 +81,15 @@ function payoutsFor(places: number[][], shares: number[], pot: number): { payout
   return { payouts, carryOut: pot - paid };
 }
 
-function perksFor(rules: LeagueRules, runnerUpIds: number[], latePayerIds: number[] = []) {
-  const earning =
-    rules.lateRule === "lose_free_pass" ? runnerUpIds.filter((id) => !latePayerIds.includes(id)) : runnerUpIds;
+function perksFor(rules: LeagueRules, winnerIds: number[], runnerUpIds: number[], latePayerIds: number[] = []) {
+  const earning = (ids: number[]) =>
+    rules.lateRule === "lose_free_pass" ? ids.filter((id) => !latePayerIds.includes(id)) : ids;
   return {
-    freePassIds: rules.runnerUpPerk === "skip_next" ? earning : [],
-    halfPriceIds: rules.runnerUpPerk === "half_price" ? earning : [],
+    freePassIds: [
+      ...(rules.winnerPerk === "skip_next" ? earning(winnerIds) : []),
+      ...(rules.runnerUpPerk === "skip_next" ? earning(runnerUpIds) : []),
+    ],
+    halfPriceIds: rules.runnerUpPerk === "half_price" ? earning(runnerUpIds) : [],
   };
 }
 
@@ -105,7 +108,7 @@ export function settleGameweek(input: SettleInput): SettleOutcome {
     runnerUpIds,
     lastPlaceIds: everyone.filter((row) => scoreOf(rules, row) === lastScore).map((row) => row.memberId),
     ...payoutsFor(places, rules.prizeShares, pot),
-    ...perksFor(rules, runnerUpIds, input.latePayerIds),
+    ...perksFor(rules, winnerIds, runnerUpIds, input.latePayerIds),
   };
 }
 
@@ -122,6 +125,6 @@ export function manualOutcome(input: {
     runnerUpIds,
     lastPlaceIds: [],
     ...payoutsFor([winnerIds], [100], pot),
-    ...perksFor(rules, runnerUpIds),
+    ...perksFor(rules, winnerIds, runnerUpIds),
   };
 }

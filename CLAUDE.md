@@ -36,7 +36,7 @@ docker compose up -d --build   # run everything on a server, using a filled .env
 ## Domain words
 
 - FPL names: **event** = gameweek, **entry** = manager/team, **element** = footballer, **classic league** = mini-league.
-- **Pot** = sum of paid entry fees for a gameweek. **Free pass** = runner-up skips next gameweek's fee.
+- **Pot** = sum of paid entry fees for a gameweek. **Free pass** = the winner and runner-up skip next gameweek's fee. **Collector** = the coordinator, if they also play: their fee is counted automatically, and they're never reminded or sent a payout.
 - **Obligation** = what a member owes for a gameweek (entry fee, free pass = 0, late fee).
 - **Net score** = gameweek `points` − `event_transfers_cost` (confirm on real data whether `points` already includes the hit; a test locks the answer).
 - **Settle** = compute winner(s), runner(s)-up, awards, next week's obligations, and post results.

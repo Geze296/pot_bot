@@ -8,7 +8,7 @@ A Telegram bot and Mini App that runs a weekly paid Fantasy Premier League mini-
 
 - **Payments:** a member sends a Telebirr screenshot, and the bot reads it, checks it and tells the group. Anything it can't confirm goes to the coordinator.
 - **Reminders:** in the group and by private message, from 2 days before the deadline, to people who haven't paid.
-- **Results:** once FPL's scores are final, it posts the winner, the runner-up's free pass, the pot and weekly awards.
+- **Results:** once FPL's scores are final, it posts the winner, the free passes for the winner and runner-up, the pot and weekly awards.
 - **Mini App:** dashboard, live table, results, ledger, and screens for managing payments, members, rules and the audit log.
 - **AI persona:** optional. With a Gemini key it writes recaps and roasts about FPL decisions. Without one, it uses plain templates.
 

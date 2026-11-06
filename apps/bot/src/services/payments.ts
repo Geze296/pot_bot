@@ -1,6 +1,7 @@
 import { potFromObligations, parseRules } from "@potbot/core";
 import type { Gameweek, League, Member, Obligation, Prisma, PrismaClient } from "@potbot/db";
 import { amountCovers, type ReviewReason, type ScreenshotDecision } from "@potbot/payments";
+import { collectorOf } from "./collector.js";
 import { ensureObligations } from "./settlement.js";
 import { isUniqueViolation } from "./users.js";
 
@@ -299,6 +300,8 @@ export async function markUnpaid(
   return db.$transaction(async (tx) => {
     const obligation = await tx.obligation.findFirst({ where: { gameweekId: gameweek.id, memberId: member.id } });
     if (!obligation || obligation.status !== "paid" || obligation.reason === "free_pass") return "not_paid";
+    // The collector's fee isn't a payment that can be undone. The next job would only count it again.
+    if (member.id === (await collectorOf(tx, league))?.id) return "not_paid";
 
     const status = gameweek.status === "open" ? ("due" as const) : ("waived" as const);
     const rules = parseRules(league.rules);

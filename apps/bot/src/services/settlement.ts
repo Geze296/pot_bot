@@ -18,6 +18,7 @@ import type { InlineKeyboard } from "grammy";
 import { t } from "../i18n/index.js";
 import { scoresForEvent, SETUP_STATE } from "./league-setup.js";
 import { postPendingAwards } from "./awards.js";
+import { applyCollectorFee, collectorOf, COLLECTOR_FEE, syncCollectorPayout } from "./collector.js";
 import { postPendingRecaps } from "./banter.js";
 import { claimMessage, releaseMessage } from "./message-log.js";
 import { sendPayoutCard } from "./payouts.js";
@@ -44,7 +45,7 @@ export async function ensureObligations(tx: Tx, league: League, gameweek: Gamewe
   const members = await tx.member.findMany({ where: { leagueId: league.id, status: "active" } });
   const existing = await tx.obligation.findMany({ where: { gameweekId: gameweek.id }, select: { memberId: true } });
   const missing = members.map((member) => member.id).filter((id) => !existing.some((row) => row.memberId === id));
-  if (missing.length === 0) return;
+  if (missing.length === 0) return applyCollectorFee(tx, league, gameweek);
 
   // The seeded free pass belongs to the first gameweek the bot runs.
   const isFirstRun = (await tx.obligation.count({ where: { gameweek: { leagueId: league.id } } })) === 0;
@@ -58,6 +59,7 @@ export async function ensureObligations(tx: Tx, league: League, gameweek: Gamewe
     data: obligations.map((item) => ({ ...item, gameweekId: gameweek.id })),
     skipDuplicates: true,
   });
+  await applyCollectorFee(tx, league, gameweek);
 }
 
 async function gameweekAfter(tx: Tx, gameweek: Gameweek): Promise<Gameweek | null> {
@@ -74,7 +76,11 @@ async function grantFreePass(tx: Tx, league: League, gameweek: Gameweek, memberI
   const obligation = await tx.obligation.findFirst({ where: { gameweekId: gameweek.id, memberId } });
   if (!obligation) return;
 
-  if (obligation.status === "paid" && obligation.reason !== "free_pass") {
+  // The collector's fee was never real money, so a free pass simply replaces it, with no credit to carry.
+  await tx.payment.deleteMany({ where: { obligationId: obligation.id, verifyReason: COLLECTOR_FEE } });
+  const realPayments = await tx.payment.count({ where: { obligationId: obligation.id } });
+
+  if (obligation.status === "paid" && obligation.reason !== "free_pass" && realPayments > 0) {
     // The next fee may be covered already, so this walks on to the first one still due.
     for (let following = await gameweekAfter(tx, gameweek); following; following = await gameweekAfter(tx, following)) {
       await ensureObligations(tx, league, following);
@@ -136,7 +142,13 @@ function resultData(outcome: SettleOutcome) {
   };
 }
 
-function resultLines(gameweek: Gameweek, pot: number, outcome: SettleOutcome, members: Member[]): string[] {
+function resultLines(
+  gameweek: Gameweek,
+  pot: number,
+  outcome: SettleOutcome,
+  members: Member[],
+  collectorId: number | undefined,
+): string[] {
   const name = (id: number) => members.find((member) => member.id === id)?.fplManagerName ?? String(id);
   const names = (ids: number[]) => ids.map(name).join(" & ");
   const next = gameweek.fplEventId + 1;
@@ -150,9 +162,10 @@ function resultLines(gameweek: Gameweek, pot: number, outcome: SettleOutcome, me
   if (outcome.runnerUpIds.length > 0) lines.push(t("en", "settle.runnerUp", { names: names(outcome.runnerUpIds) }));
   lines.push(t("en", "settle.pot", { pot }));
   for (const payout of outcome.payouts) {
-    lines.push(t("en", "settle.payoutLine", { name: name(payout.memberId), amount: payout.amount }));
+    const key = payout.memberId === collectorId ? "settle.collectorLine" : "settle.payoutLine";
+    lines.push(t("en", key, { name: name(payout.memberId), amount: payout.amount }));
   }
-  if (outcome.payouts.length > 0) lines.push(t("en", "settle.payoutNote"));
+  if (outcome.payouts.some((payout) => payout.memberId !== collectorId)) lines.push(t("en", "settle.payoutNote"));
   if (outcome.carryOut > 0) lines.push(t("en", "settle.carry", { amount: outcome.carryOut }));
   if (outcome.freePassIds.length > 0) {
     lines.push(t("en", "settle.freePass", { gw: next, names: names(outcome.freePassIds) }));
@@ -289,7 +302,8 @@ async function trySettle(deps: SettlementDeps, league: League, gameweek: Gamewee
   try {
     await db.$transaction(async (tx) => {
       // The unique gameweek_id on results stops a second settle.
-      await tx.result.create({ data: { gameweekId: gameweek.id, ...resultData(outcome) } });
+      const result = await tx.result.create({ data: { gameweekId: gameweek.id, ...resultData(outcome) } });
+      await syncCollectorPayout(tx, league, result.id, now);
       await saveRanks(tx, gameweek.id, inputs.rows, rules);
       await tx.gameweek.update({ where: { id: gameweek.id }, data: { status: "settled", potAmount: pot } });
       await applyToNextGameweek(tx, league, gameweek, outcome);
@@ -330,7 +344,7 @@ async function postPendingResults({ db, send }: SettlementDeps, league: League):
     };
     const lines = [
       t("en", "settle.header", { gw: gameweek.fplEventId }),
-      ...resultLines(gameweek, gameweek.potAmount, outcome, members),
+      ...resultLines(gameweek, gameweek.potAmount, outcome, members, (await collectorOf(db, league))?.id),
     ];
     try {
       await send(league.telegramChatId, lines.join("\n"));
@@ -469,7 +483,7 @@ async function postCorrection(
   const members = await deps.db.member.findMany({ where: { leagueId: league.id } });
   const lines = [
     t("en", "override.corrected", { gw: gameweek.fplEventId }),
-    ...resultLines(gameweek, pot, outcome, members),
+    ...resultLines(gameweek, pot, outcome, members, (await collectorOf(deps.db, league))?.id),
   ];
   if (nextLocked) lines.push(t("en", "override.nextLocked", { gw: gameweek.fplEventId + 1 }));
 
@@ -536,6 +550,7 @@ export async function overrideScore(
       pot: gameweek.potAmount,
     });
     await tx.result.update({ where: { id: result.id }, data: resultData(outcome) });
+    await syncCollectorPayout(tx, league, result.id, new Date());
     const nextLocked = await correctResult(tx, league, gameweek, result, outcome);
     return { outcome, nextLocked };
   });
@@ -561,11 +576,12 @@ export async function overrideWinner(
     const data = { ...resultData(outcome), source: "manual" as const };
 
     const previous = await tx.result.findUnique({ where: { gameweekId: gameweek.id } });
-    await tx.result.upsert({
+    const saved = await tx.result.upsert({
       where: { gameweekId: gameweek.id },
       create: { gameweekId: gameweek.id, ...data },
       update: data,
     });
+    await syncCollectorPayout(tx, league, saved.id, new Date());
     await tx.auditLog.create({
       data: {
         leagueId: league.id,

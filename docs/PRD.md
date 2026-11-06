@@ -54,7 +54,7 @@ The owner pastes one league link and the bot loads every manager and every past 
 
 1. Owner runs `/setup` in the group and pastes the league link.
 2. Bot loads the league and replies with the league name and the 10 managers, so the owner can confirm it's the right league.
-3. The **first pot gameweek** is the next gameweek to play, found automatically from FPL, so a group can go live at any point in the season. The runner-up of the gameweek before it gets a free pass. An owner who wants earlier weeks in the table can run `/setup <league> <gameweek>`.
+3. The **first pot gameweek** is the next gameweek to play, found automatically from FPL, so a group can go live at any point in the season. The winner and runner-up of the gameweek before it get a free pass. An owner who wants earlier weeks in the table can run `/setup <league> <gameweek>`.
 4. Bot backfills every finished gameweek from that point. It computes each week's net score, winner and runner-up using the league's rules, then shows a "Season so far" table for the owner to confirm or correct.
 5. For past payments, the owner chooses "everyone paid, except free passes" or ticks each week by hand in a grid in the Mini App. The ledger then starts correct.
 6. Bot posts a link in the group. Each member taps it, presses Start, and picks their team from buttons listing the league's managers. A team that has been claimed disappears from the list, the group is told who claimed what, and only people in the group can claim. The owner can link or unlink anyone.

@@ -6,6 +6,7 @@ import { ActionNotices, Card, Loading, useAction, useLoad } from "../ui.js";
 const RULE_ORDER = [
   "entryFee",
   "prizeShares",
+  "winnerPerk",
   "runnerUpPerk",
   "whoCanWin",
   "scoreMode",

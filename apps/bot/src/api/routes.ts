@@ -258,6 +258,7 @@ export function apiRoutes(deps: RouteDeps) {
           hasScreenshot: payment.screenshotFileId !== null,
         })),
         members: obligations.map((item) => ({
+          isCollector: item.member.userId !== null && item.member.userId === league.coordinatorUserId,
           memberId: item.memberId,
           manager: item.member.fplManagerName,
           team: item.member.fplTeamName,

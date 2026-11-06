@@ -42,17 +42,18 @@ You don't have to write the receipt parser from scratch. Several open-source Eth
 
 ## League rules: your rules as defaults, all configurable
 
-With 10 players and the runner-up exemption, a normal gameweek pot is 9 × 100 = **900 birr**. The winner's net gain is 800 birr, because they paid in too. Every rule below is a setting in the admin app, so other groups can run their own version.
+With 10 players, and last week's winner and runner-up skipping their fee, a normal gameweek pot is 8 × 100 = **800 birr**. Everyone sends their fee to the coordinator, who can't send money to themselves, so if they play too, their own fee is counted automatically. They're never reminded, and if they win, nothing is sent or announced as delivered, because they already hold the pot. Every rule below is a setting in the admin app, so other groups can run their own version.
 
 | Rule | Your default | Other options to offer |
 | --- | --- | --- |
 | Entry fee | 100 birr per gameweek | Any amount; season-long fee paid once |
 | Prize split | Winner takes all | 70/30 split; top 3 split |
+| Winner perk | Skips the next gameweek's payment | Off |
 | Runner-up perk | Skips the next gameweek's payment | Off; half price; "double or nothing" choice |
 | Who can win | Only members marked paid (the runner-up's free pass counts as paid) | Everyone wins, unpaid winners owe the pot |
 | Score used | FPL gameweek points after transfer hits | Before hits |
 | Tie for 1st | Split the pot equally | Tie-break by fewer hits, then overall rank |
-| Tie for 2nd | Both skip the next payment | Tie-break as above |
+| Tie for 1st or 2nd | Everyone tied skips the next payment | Tie-break as above |
 | Late payment | Not eligible to win this gameweek | Pay 120 birr after the deadline; lose free passes |
 | Double or blank gameweeks | Treated as normal gameweeks | Double fee, double pot |
 
@@ -126,7 +127,7 @@ The best jokes come from real FPL data about real friends, so the AI gets each w
 
 | Award | Goes to |
 | --- | --- |
-| Gameweek King | Highest score; takes the pot |
+| Gameweek King | Highest score; takes the pot and skips the next payment |
 | Free Pass | Runner-up; skips next payment |
 | Wooden Spoon | Lowest score |
 | Bench Boss | Most points left on the bench |

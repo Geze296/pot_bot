@@ -12,7 +12,7 @@ const everyone = (rows: SettleRow[]) => rows.map((r) => r.memberId);
 const settle = (rows: SettleRow[], overrides: Partial<LeagueRules> = {}, pot = 1000, eligibleIds = everyone(rows)) =>
   settleGameweek({ rules: { ...DEFAULT_RULES, ...overrides }, rows, eligibleIds, pot });
 
-describe("default rules: winner takes all, runner-up skips next fee", () => {
+describe("default rules: winner takes all, and the winner and runner-up skip the next fee", () => {
   it("pays the whole pot to the winner and gives the runner-up a free pass", () => {
     const outcome = settle([row(1, 60), row(2, 70), row(3, 50)]);
 
@@ -20,7 +20,7 @@ describe("default rules: winner takes all, runner-up skips next fee", () => {
     expect(outcome.runnerUpIds).toEqual([1]);
     expect(outcome.payouts).toEqual([{ memberId: 2, amount: 1000 }]);
     expect(outcome.carryOut).toBe(0);
-    expect(outcome.freePassIds).toEqual([1]);
+    expect(outcome.freePassIds).toEqual([2, 1]);
     expect(outcome.halfPriceIds).toEqual([]);
     expect(outcome.lastPlaceIds).toEqual([3]);
   });
@@ -29,6 +29,45 @@ describe("default rules: winner takes all, runner-up skips next fee", () => {
     const outcome = settle([row(1, 70, 12), row(2, 60)]);
 
     expect(outcome.winnerIds).toEqual([2]);
+  });
+});
+
+describe("the winner's free pass", () => {
+  it("by default, the winner and runner-up both skip the next fee", () => {
+    expect(settle([row(1, 60), row(2, 70), row(3, 50)]).freePassIds).toEqual([2, 1]);
+  });
+
+  it("a tie for 1st gives every winner a pass, plus the runner-up", () => {
+    expect(settle([row(1, 70), row(2, 70), row(3, 60), row(4, 50)]).freePassIds).toEqual([1, 2, 3]);
+  });
+
+  it("a tie for 2nd gives everyone tied a pass, plus the winner", () => {
+    expect(settle([row(1, 70), row(2, 60), row(3, 60)]).freePassIds).toEqual([1, 2, 3]);
+  });
+
+  it("everyone tied: everyone has a pass", () => {
+    expect(settle([row(1, 70), row(2, 70)]).freePassIds).toEqual([1, 2]);
+  });
+
+  it("can be turned off", () => {
+    expect(settle([row(1, 70), row(2, 60)], { winnerPerk: "off" }).freePassIds).toEqual([2]);
+  });
+
+  it("the runner-up's perk can differ, and the winner's pass stands", () => {
+    const outcome = settle([row(1, 90), row(2, 80)], { runnerUpPerk: "half_price" });
+
+    expect(outcome.freePassIds).toEqual([1]);
+    expect(outcome.halfPriceIds).toEqual([2]);
+  });
+
+  it("nobody eligible means no passes", () => {
+    expect(settle([row(1, 90)], {}, 100, []).freePassIds).toEqual([]);
+  });
+
+  it("a manual result gives the named winners and runners-up their passes", () => {
+    const outcome = manualOutcome({ rules: DEFAULT_RULES, winnerIds: [1], runnerUpIds: [2], pot: 800 });
+
+    expect(outcome.freePassIds).toEqual([1, 2]);
   });
 });
 
@@ -59,11 +98,8 @@ describe("ties for 1st, split", () => {
     expect(outcome.runnerUpIds).toEqual([4]);
   });
 
-  it("everyone tied: no runner-up and no free pass", () => {
-    const outcome = settle([row(1, 70), row(2, 70)]);
-
-    expect(outcome.runnerUpIds).toEqual([]);
-    expect(outcome.freePassIds).toEqual([]);
+  it("everyone tied: no runner-up", () => {
+    expect(settle([row(1, 70), row(2, 70)]).runnerUpIds).toEqual([]);
   });
 });
 
@@ -101,16 +137,16 @@ describe("ties for 1st, tie-break", () => {
 });
 
 describe("ties for 2nd", () => {
-  it("2-way and 3-way: everyone tied gets a free pass by default", () => {
-    expect(settle([row(1, 70), row(2, 60), row(3, 60)]).freePassIds).toEqual([2, 3]);
-    expect(settle([row(1, 70), row(2, 60), row(3, 60), row(4, 60)]).freePassIds).toEqual([2, 3, 4]);
+  it("2-way and 3-way: everyone tied gets a free pass by default, along with the winner", () => {
+    expect(settle([row(1, 70), row(2, 60), row(3, 60)]).freePassIds).toEqual([1, 2, 3]);
+    expect(settle([row(1, 70), row(2, 60), row(3, 60), row(4, 60)]).freePassIds).toEqual([1, 2, 3, 4]);
   });
 
   it("tie-break: fewer hits takes the pass alone", () => {
     const outcome = settle([row(1, 70), row(2, 64, 4), row(3, 60)], { tieSecond: "tie_break" });
 
     expect(outcome.runnerUpIds).toEqual([3]);
-    expect(outcome.freePassIds).toEqual([3]);
+    expect(outcome.freePassIds).toEqual([1, 3]);
   });
 
   it("tie-break: 3-way uses the overall total", () => {
@@ -129,7 +165,7 @@ describe("who can win", () => {
 
     expect(outcome.winnerIds).toEqual([3]);
     expect(outcome.runnerUpIds).toEqual([4]);
-    expect(outcome.freePassIds).toEqual([4]);
+    expect(outcome.freePassIds).toEqual([3, 4]);
   });
 
   it("paid only: an unpaid manager can still be last place, for fun", () => {
@@ -217,14 +253,14 @@ describe("runner-up perk", () => {
   it("off: no perk", () => {
     const outcome = settle(rows, { runnerUpPerk: "off" });
 
-    expect(outcome.freePassIds).toEqual([]);
+    expect(outcome.freePassIds).toEqual([1]);
     expect(outcome.halfPriceIds).toEqual([]);
   });
 
   it("half price", () => {
     const outcome = settle(rows, { runnerUpPerk: "half_price" });
 
-    expect(outcome.freePassIds).toEqual([]);
+    expect(outcome.freePassIds).toEqual([1]);
     expect(outcome.halfPriceIds).toEqual([2]);
   });
 });
@@ -240,7 +276,7 @@ describe("late rule", () => {
     });
 
     expect(outcome.runnerUpIds).toEqual([2]);
-    expect(outcome.freePassIds).toEqual([]);
+    expect(outcome.freePassIds).toEqual([1]);
   });
 });
 
@@ -250,6 +286,6 @@ describe("manualOutcome", () => {
 
     expect(outcome.payouts.map((payout) => payout.amount)).toEqual([266, 266, 266]);
     expect(outcome.carryOut).toBe(2);
-    expect(outcome.freePassIds).toEqual([4]);
+    expect(outcome.freePassIds).toEqual([1, 2, 3, 4]);
   });
 });

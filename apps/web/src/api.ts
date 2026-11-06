@@ -75,7 +75,15 @@ export interface Payments {
     paidAt: string | null;
     hasScreenshot: boolean;
   }[];
-  members: { memberId: number; manager: string; team: string; status: string; reason: string; amountDue: number }[];
+  members: {
+    isCollector: boolean;
+    memberId: number;
+    manager: string;
+    team: string;
+    status: string;
+    reason: string;
+    amountDue: number;
+  }[];
 }
 
 export interface Results {

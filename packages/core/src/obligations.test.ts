@@ -18,6 +18,16 @@ describe("buildObligations", () => {
   });
 });
 
+describe("a typical week, with last week's winner and runner-up on free passes", () => {
+  it("10 players with a 100 birr fee make an 800 pot", () => {
+    const memberIds = Array.from({ length: 10 }, (_, index) => index + 1);
+    const obligations = buildObligations({ rules: DEFAULT_RULES, memberIds, freePassIds: [1, 2] });
+    const paid = obligations.map((item) => ({ ...item, status: "paid" as const }));
+
+    expect(potFromObligations(paid, 0)).toBe(800);
+  });
+});
+
 describe("applyDeadline", () => {
   const unpaid = { amountDue: 100, reason: "entry" as const, status: "due" as const };
 

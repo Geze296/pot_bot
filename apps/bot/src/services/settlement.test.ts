@@ -182,7 +182,7 @@ describe("settling (hard rule 4)", () => {
     expect(settlePosts()[0]?.text).toContain("Runner-up: KB Gselassie");
     expect(settlePosts()[0]?.text).toContain("Pot: 1000 birr");
     expect(settlePosts()[0]?.text).toContain("Yabets M gets 1000 birr");
-    expect(settlePosts()[0]?.text).toContain("Free pass for GW11: KB Gselassie");
+    expect(settlePosts()[0]?.text).toContain("Free pass for GW11: Yabets M & KB Gselassie");
   });
 
   it("running again doesn't settle or post twice", async () => {
@@ -298,14 +298,15 @@ describe("money", () => {
     expect(result.payoutAmount).toBe(1000);
   });
 
-  it("the runner-up's next fee becomes a free pass", async () => {
+  it("the winner's and runner-up's next fees become free passes, and everyone else still owes", async () => {
     await payEveryone(10);
     await harness.tick(GW10_DEADLINE);
     finishGw(10, { [JAZZ]: { points: 90 }, [KINGS]: { points: 80 } });
     await settle();
 
+    expect(await obligationOf(JAZZ, 11)).toMatchObject({ reason: "free_pass", amountDue: 0, status: "paid" });
     expect(await obligationOf(KINGS, 11)).toMatchObject({ reason: "free_pass", amountDue: 0, status: "paid" });
-    expect(await obligationOf(JAZZ, 11)).toMatchObject({ reason: "entry", amountDue: 100, status: "due" });
+    expect(await obligationOf(NAT_FC, 11)).toMatchObject({ reason: "entry", amountDue: 100, status: "due" });
   });
 
   it("someone who paid early, then earns a free pass, keeps it as credit for the next fee", async () => {
@@ -348,7 +349,7 @@ describe("money", () => {
     finishGw(10, { [JAZZ]: { points: 90 }, [KINGS]: { points: 80 } });
     await settle();
     await harness.tick(new Date(GW11_DEADLINE.getTime() - HOUR));
-    await pay(JAZZ, 11, new Date(GW11_DEADLINE.getTime() - HOUR));
+    await pay(NAT_FC, 11, new Date(GW11_DEADLINE.getTime() - HOUR));
     await harness.tick(GW11_DEADLINE);
 
     finishGw(11, { [JAZZ]: { points: 70 }, [KINGS]: { points: 90 } });
@@ -409,22 +410,23 @@ describe("R3: overrides", () => {
 
   it("correcting a score re-ranks, moves the free pass, logs it and tells the group", async () => {
     await settled();
-    await harness.say(OWNER, GROUP_ID, `/override score ${KINGS} 10 95`);
+    await harness.say(OWNER, GROUP_ID, `/override score ${NAT_FC} 10 95`);
 
     const result = await db.result.findFirstOrThrow();
-    expect(result.winnerMemberIds).toEqual([(await memberOf(KINGS)).id]);
+    expect(result.winnerMemberIds).toEqual([(await memberOf(NAT_FC)).id]);
     expect(result.runnerUpMemberIds).toEqual([(await memberOf(JAZZ)).id]);
 
+    expect(await obligationOf(NAT_FC, 11)).toMatchObject({ reason: "free_pass", status: "paid" });
     expect(await obligationOf(JAZZ, 11)).toMatchObject({ reason: "free_pass", status: "paid" });
     expect(await obligationOf(KINGS, 11)).toMatchObject({ reason: "entry", amountDue: 100, status: "due" });
 
-    const score = await db.score.findFirstOrThrow({ where: { memberId: (await memberOf(KINGS)).id } });
+    const score = await db.score.findFirstOrThrow({ where: { memberId: (await memberOf(NAT_FC)).id } });
     expect(score).toMatchObject({ points: 95, source: "manual" });
 
     const owner = await db.user.findUniqueOrThrow({ where: { telegramId: BigInt(OWNER.id) } });
     expect(await db.auditLog.findFirstOrThrow({ where: { action: "score.override" } })).toMatchObject({
       actorId: owner.id,
-      before: { points: 80, transferCost: 0 },
+      before: { points: 30, transferCost: 0 },
     });
     expect(allSent().join("\n")).toContain("Corrected result for GW10");
   });
