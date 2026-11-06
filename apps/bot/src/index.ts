@@ -3,7 +3,8 @@ import { createDb } from "@potbot/db";
 import { createFplClient } from "@potbot/fpl";
 import { createHmac } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { webhookCallback, type Bot } from "grammy";
+import { InputFile, webhookCallback, type Bot } from "grammy";
+import { apiRoutes } from "./api/routes.js";
 import { createApi } from "./api/server.js";
 import { createBot } from "./bot.js";
 import { loadConfig } from "./config.js";
@@ -53,6 +54,13 @@ async function main(): Promise<void> {
       await db.$queryRaw`SELECT 1`;
     },
     webDir: fileURLToPath(new URL("../../web/dist", import.meta.url)),
+    routes: apiRoutes({
+      db,
+      botToken: config.botToken,
+      send,
+      sendDocument: (chatId, filename, content) =>
+        bot.api.sendDocument(Number(chatId), new InputFile(Buffer.from(content), filename)),
+    }),
     ...(config.publicUrl
       ? {
           telegramWebhook: {

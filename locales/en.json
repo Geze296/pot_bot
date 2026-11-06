@@ -200,5 +200,7 @@
   "app.prompt": "Your dashboard, results and ledger are here.",
   "app.notAvailable": "The app isn't available on this server yet.",
   "app.menu": "Open app",
+  "ledger.csvHeader": "Gameweek,Manager,Team,Fee type,Fee status,Paid in,Won,Received,Net",
+  "ledger.csvTotal": "Season total",
   "rules.saved": "{key} is now {value}. Gameweeks that have already started aren't affected."
 }

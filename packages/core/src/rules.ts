@@ -26,6 +26,16 @@ export const DEFAULT_RULES: LeagueRules = {
   lateFee: 120,
 };
 
+/** The choices for each rule that has a fixed list. */
+export const RULE_OPTIONS = {
+  runnerUpPerk: ["skip_next", "half_price", "off"],
+  whoCanWin: ["paid_only", "everyone"],
+  scoreMode: ["net", "gross"],
+  tieFirst: ["split", "tie_break"],
+  tieSecond: ["all", "tie_break"],
+  lateRule: ["not_eligible", "late_fee", "lose_free_pass"],
+} as const;
+
 export class RuleError extends Error {}
 
 /** Reads rules stored on a league. Anything missing gets its default. */
@@ -61,17 +71,17 @@ export function setRule(rules: LeagueRules, key: string, value: string): LeagueR
     case "prizeShares":
       return { ...rules, prizeShares: parseShares(value) };
     case "runnerUpPerk":
-      return { ...rules, runnerUpPerk: oneOf(value, ["skip_next", "half_price", "off"]) };
+      return { ...rules, runnerUpPerk: oneOf(value, RULE_OPTIONS.runnerUpPerk) };
     case "whoCanWin":
-      return { ...rules, whoCanWin: oneOf(value, ["paid_only", "everyone"]) };
+      return { ...rules, whoCanWin: oneOf(value, RULE_OPTIONS.whoCanWin) };
     case "scoreMode":
-      return { ...rules, scoreMode: oneOf(value, ["net", "gross"]) };
+      return { ...rules, scoreMode: oneOf(value, RULE_OPTIONS.scoreMode) };
     case "tieFirst":
-      return { ...rules, tieFirst: oneOf(value, ["split", "tie_break"]) };
+      return { ...rules, tieFirst: oneOf(value, RULE_OPTIONS.tieFirst) };
     case "tieSecond":
-      return { ...rules, tieSecond: oneOf(value, ["all", "tie_break"]) };
+      return { ...rules, tieSecond: oneOf(value, RULE_OPTIONS.tieSecond) };
     case "lateRule":
-      return { ...rules, lateRule: oneOf(value, ["not_eligible", "late_fee", "lose_free_pass"]) };
+      return { ...rules, lateRule: oneOf(value, RULE_OPTIONS.lateRule) };
     default:
       throw new RuleError(`There's no rule called "${key}".`);
   }

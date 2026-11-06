@@ -1,10 +1,9 @@
 import type { League, Member } from "@potbot/db";
-import { memberLedger } from "@potbot/core";
 import { Composer, InlineKeyboard, type Context } from "grammy";
 import { t, toLanguage, type Language } from "../i18n/index.js";
 import { aiLine, mentionPrompt, personaSettings, PERSONAS, roastPrompt, type PersonaName } from "../services/banter.js";
+import { leagueLedger } from "../services/ledger.js";
 import { SETUP_STATE } from "../services/league-setup.js";
-import type { Share } from "../services/payouts.js";
 import { displayName, ensureUser } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
 
@@ -179,23 +178,11 @@ export function banterCommands(deps: BotDeps): Composer<Context> {
     });
     if (members.length === 0) return null;
 
-    const memberIds = members.map((member) => member.id);
-    const [payments, results] = await Promise.all([
-      db.payment.findMany({
-        where: { verifyStatus: "verified", obligation: { memberId: { in: memberIds } } },
-        include: { obligation: true },
-      }),
-      db.result.findMany({ where: { gameweek: { leagueId: { in: members.map((member) => member.leagueId) } } } }),
-    ]);
-    const ledger = memberLedger({
-      payments: payments.map((payment) => ({ memberId: payment.obligation.memberId, amount: payment.amount })),
-      payouts: results.flatMap((result) => result.payoutShares as unknown as Share[]),
-    });
-
     const lines: string[] = [];
     const facts = members.flatMap((member) => member.facts);
     for (const member of members) {
-      const row = ledger.find((item) => item.memberId === member.id);
+      const { members: rows } = await leagueLedger(db, member.leagueId);
+      const row = rows.find((item) => item.memberId === member.id);
       lines.push(
         t(language, "me.league", {
           league: member.league.name,
