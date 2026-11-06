@@ -29,6 +29,7 @@ services:
     environment:
       # Inside Docker the database is reached by its service name, whatever .env says for local development.
       DATABASE_URL: postgresql://potbot:${POSTGRES_PASSWORD:-potbot}@db:5432/potbot
+      API_HOST: 0.0.0.0
     healthcheck:
       test:
         [

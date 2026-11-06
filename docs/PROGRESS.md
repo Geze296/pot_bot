@@ -30,7 +30,7 @@
 
 - [x] L4: hourly re-sync. Joiners are added and charged, leavers are flagged and stop being charged, name changes are picked up, and the group is told about joins and leaves
 
-- [x] O2: one-command self-hosting. `docker compose up -d --build` runs the database and bot, applying migrations on start. Checked in the container up to Telegram login; not yet run with a real token. The Mini App joins it with A1. Webhook mode isn't built, so it uses long polling
+- [x] O2: one-command self-hosting. `docker compose up -d --build` runs the database and bot, applying migrations on start. It also serves the Mini App, and uses a webhook when `PUBLIC_URL` is set. Checked in the container up to Telegram login; not yet run with a real token or on Northflank. See `docs/DEPLOY.md`
 
 - [x] P5: record the pot payout. After results, the coordinator gets a card with a Paid button per winner, or sends `/payout` then a screenshot, in private or the group, which the bot reads and shows the group; `/paidout` records one by hand. The group gets "Pot delivered". Transaction numbers must be unused, but aren't checked with Telebirr, because receipt checks are deferred
 
