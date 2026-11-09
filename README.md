@@ -45,7 +45,7 @@ Each new tunnel gets a new address. When you finish, remove `PUBLIC_URL` and res
 
 ## Deploy
 
-See [docs/DEPLOY.md](docs/DEPLOY.md) for step-by-step instructions for Render and Aiven. Any host that runs Docker works with `docker compose up -d --build`.
+See [docs/DEPLOY.md](docs/DEPLOY.md) for step-by-step instructions for Fly.io with Aiven, and a free Render alternative. Any host that runs Docker works with `docker compose up -d --build`.
 
 ## Develop
 

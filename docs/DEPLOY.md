@@ -1,4 +1,53 @@
-# Deploying Pot Bot on Render and Aiven
+# Deploying Pot Bot
+
+Pot Bot is deployed on **Fly.io**, with the database on **Aiven**. The Fly steps come first. Render is kept below as a free alternative.
+
+## Fly.io and Aiven
+
+Fly.io has no free plan, so this costs a few dollars a month for one always-on machine with 512 MB. Check Fly's pricing page for the current figure. `fly.toml` is already set up.
+
+1. **Install `flyctl`** and log in:
+   ```bash
+   curl -L https://fly.io/install.sh | sh
+   fly auth login
+   ```
+2. **Create the database on Aiven**, as in [section 1 below](#1-create-the-database-on-aiven).
+3. **Set the secrets.** For the certificate, use the file you downloaded from Aiven:
+   ```bash
+   fly secrets set BOT_TOKEN='your new token' DATABASE_URL='Aiven Service URI'
+   fly secrets set DATABASE_CA_CERT="$(cat ca.pem)"
+   fly secrets set GEMINI_API_KEY='your key'   # optional
+   ```
+4. **Stop `pnpm dev` on your computer,** then deploy:
+   ```bash
+   fly deploy
+   fly scale count 1
+   ```
+   Fly may start two machines by default, and two copies would run every job twice. `fly scale count 1` keeps one.
+5. **Check it:**
+   ```bash
+   fly status
+   fly logs
+   ```
+   The logs should show `Bot running as @office_ffm_loosers_bot with a webhook at https://pot-bot.fly.dev`, and `https://pot-bot.fly.dev/health` should show `{"status":"ok"}`.
+6. **Test in a test group:** `/start` in private, `/setup 1680179` in the group, then `/app`. That also shows whether FPL allows Fly's servers.
+
+If you rename the app in `fly.toml`, change `PUBLIC_URL` to match.
+
+Then continue from [section 5](#5-set-up-your-real-league) to set up your real league, and set up backups as in [section 6](#6-back-up-your-data).
+
+| What you see | What to do |
+| --- | --- |
+| `fly deploy` fails while building | Retry once, then send me the build log |
+| The health check fails | Run `fly logs`. Check `fly.toml` still says `internal_port = 3000` |
+| `Missing required settings` | Set the secret it names with `fly secrets set` |
+| `self-signed certificate` or `unable to verify` | Set `DATABASE_CA_CERT` again from the certificate file |
+| Out of memory | Raise `memory` in `fly.toml` to `1gb`, and deploy again |
+| Jobs or replies stop | Run `fly status`. The machine should be `started`, with exactly one machine |
+
+---
+
+# Render and Aiven, a free alternative
 
 Render runs the service: the bot, the scheduled jobs, the API and the Mini App. Aiven runs PostgreSQL. A free monitor keeps Render awake. As far as their docs say, none of the three needs a card, but sources conflict on Render for Docker services.
 

@@ -30,7 +30,7 @@
 
 - [x] L4: hourly re-sync. Joiners are added and charged, leavers are flagged and stop being charged, name changes are picked up, and the group is told about joins and leaves
 
-- [x] O2: one-command self-hosting. `docker compose up -d --build` runs the database and bot, applying migrations on start. It also serves the Mini App, and uses a webhook when `PUBLIC_URL` is set. Checked in the container up to Telegram login. Hosting moved to Render and Aiven, because Oracle didn't work for the owner and Northflank disclosed a breach. Connection tested against a private certificate, and startup peaked at about 256 MB under a 512 MB cap. Not yet run on Render or Aiven. See `docs/DEPLOY.md`
+- [x] O2: one-command self-hosting. `docker compose up -d --build` runs the database and bot, applying migrations on start. It also serves the Mini App, and uses a webhook when `PUBLIC_URL` is set. Checked in the container up to Telegram login. Hosting is Fly.io with Aiven for the database (the owner's choice), with Render kept as a free alternative. Oracle didn't work for the owner, and Northflank disclosed a breach. Connection tested against a private certificate, and startup peaked at about 256 MB under a 512 MB cap. Not yet run on Render or Aiven. See `docs/DEPLOY.md`
 
 - [x] P5: record the pot payout. After results, the coordinator gets a card with a Paid button per winner, or sends `/payout` then a screenshot, in private or the group, which the bot reads and shows the group; `/paidout` records one by hand. The group gets "Pot delivered". Transaction numbers must be unused, but aren't checked with Telebirr, because receipt checks are deferred
 

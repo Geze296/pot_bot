@@ -1,22 +1,32 @@
-# fly.toml app configuration file generated for pot-bot on 2026-11-09T12:49:34Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
+# Fly.io configuration. See docs/DEPLOY.md, and https://fly.io/docs/reference/configuration/
 app = 'pot-bot'
 primary_region = 'ams'
 
 [build]
+
+[env]
+  API_PORT = '3000'
+  # The app's public address. With it set, the bot uses a webhook and offers the Mini App.
+  PUBLIC_URL = 'https://pot-bot.fly.dev'
+
 [http_service]
-  internal_port = 8080
+  internal_port = 3000
   force_https = true
-  auto_stop_machines = 'stop'
+  # Scheduled jobs post reminders and settle results, so the machine must never stop.
+  auto_stop_machines = 'off'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
+  [[http_service.checks]]
+    grace_period = '60s'
+    interval = '30s'
+    method = 'GET'
+    timeout = '5s'
+    path = '/health'
+
 [[vm]]
-  memory = '1gb'
+  # Startup measured at about 256 MB, so 512 MB leaves room.
+  memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256
