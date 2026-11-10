@@ -7,10 +7,6 @@ import { SETUP_STATE } from "../services/league-setup.js";
 import { displayName, ensureUser, escapeHtml, mentionFor } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
 
-/** Anyone can roast, so one person can't use up the group's AI messages for the day. */
-export const ROASTS_PER_PERSON_PER_DAY = 3;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 const pickOne = <T>(items: T[]): T | null => items[Math.floor(Math.random() * items.length)] ?? null;
 
 export function banterCommands(deps: BotDeps): Composer<Context> {
@@ -82,24 +78,6 @@ export function banterCommands(deps: BotDeps): Composer<Context> {
     return pickOne(await db.member.findMany({ where: candidates }));
   }
 
-  /** Counts this person's roast today. False when they've used up their roasts. */
-  async function takeRoast(league: League, userId: number): Promise<boolean> {
-    const prefix = `roast:user${userId}:`;
-    const used = await db.messageLog.count({
-      where: {
-        leagueId: league.id,
-        kind: "roast",
-        dedupeKey: { startsWith: prefix },
-        sentAt: { gte: new Date(now().getTime() - DAY_MS) },
-      },
-    });
-    if (used >= ROASTS_PER_PERSON_PER_DAY) return false;
-    await db.messageLog.create({
-      data: { leagueId: league.id, dedupeKey: `${prefix}${now().getTime()}:${used}`, kind: "roast", sentAt: now() },
-    });
-    return true;
-  }
-
   composer.command("roast", async (ctx) => {
     const language = toLanguage(ctx.from?.language_code);
     if (ctx.chat.type === "private") return ctx.reply(t(language, "roast.groupOnly"));
@@ -118,11 +96,6 @@ export function banterCommands(deps: BotDeps): Composer<Context> {
     } else {
       target = await roastVictim(league);
       if (!target) return ctx.reply(t(language, "roast.nobody"));
-    }
-
-    const actor = await ensureUser(db, ctx.from!);
-    if (!(await takeRoast(league, actor.id))) {
-      return ctx.reply(t(language, "roast.limit", { count: ROASTS_PER_PERSON_PER_DAY }));
     }
 
     const member = await db.member.findUniqueOrThrow({

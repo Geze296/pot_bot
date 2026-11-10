@@ -180,7 +180,6 @@
   "roast.usage": "I couldn't find them. Send /roast on its own, reply to someone with /roast, or use /roast @username or /roast <FPL team ID>. They need to have claimed a team if you reply or use their @username.",
   "roast.optedOut": "They've opted out with /nofun, so I'll leave them alone.",
   "roast.nobody": "There's no one I can roast yet.",
-  "roast.limit": "That's your {count} roasts for today. Save some burns for tomorrow.",
   "roast.template": "{name}, the data has spoken, and the data is disappointed.",
   "nofun.done": "Done. I won't roast you or use your stored facts. You still play as normal. Send /funon to change your mind.",
   "funon.done": "You're back in the firing line.",

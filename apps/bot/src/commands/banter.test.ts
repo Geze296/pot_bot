@@ -120,18 +120,6 @@ describe("/roast", () => {
     expect(lastTo(GROUP_ID)).toContain("no one I can roast");
   });
 
-  it("allows each person 3 roasts a day", async () => {
-    for (let i = 0; i < 3; i++) await harness.say(ALICE, GROUP_ID, `/roast ${KINGS}`);
-    expect(ai.calls).toHaveLength(3);
-
-    await harness.say(ALICE, GROUP_ID, `/roast ${KINGS}`);
-    expect(lastTo(GROUP_ID)).toContain("That's your 3 roasts for today");
-    expect(ai.calls).toHaveLength(3);
-
-    await harness.say(BOB, GROUP_ID, `/roast ${JAZZ}`);
-    expect(ai.calls).toHaveLength(4);
-  });
-
   it("only works in the group, and says so when it can't find the person", async () => {
     await harness.say(OWNER, OWNER.id, `/roast ${KINGS}`);
     expect(lastTo(OWNER.id)).toContain("belong in the group");
