@@ -4,8 +4,14 @@ import { t, toLanguage, type Language } from "../i18n/index.js";
 import { aiLine, mentionPrompt, personaSettings, PERSONAS, roastPrompt, type PersonaName } from "../services/banter.js";
 import { leagueLedger } from "../services/ledger.js";
 import { SETUP_STATE } from "../services/league-setup.js";
-import { displayName, ensureUser } from "../services/users.js";
+import { displayName, ensureUser, escapeHtml, mentionFor } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
+
+/** Anyone can roast, so one person can't use up the group's AI messages for the day. */
+export const ROASTS_PER_PERSON_PER_DAY = 3;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const pickOne = <T>(items: T[]): T | null => items[Math.floor(Math.random() * items.length)] ?? null;
 
 export function banterCommands(deps: BotDeps): Composer<Context> {
   const { db } = deps;
@@ -52,18 +58,77 @@ export function banterCommands(deps: BotDeps): Composer<Context> {
     return null;
   }
 
+  /**
+   * Who a roast with no name goes to: the lowest score after hits in the latest gameweek with scores, or anyone if
+   * there are no scores yet. People who sent /nofun are never picked.
+   */
+  async function roastVictim(league: League): Promise<Member | null> {
+    const candidates = { leagueId: league.id, status: "active" as const, roastOptOut: false };
+    const latest = await db.score.findFirst({
+      where: { member: candidates },
+      include: { gameweek: true },
+      orderBy: { gameweek: { fplEventId: "desc" } },
+    });
+    if (latest) {
+      const scores = await db.score.findMany({
+        where: { gameweekId: latest.gameweekId, member: candidates },
+        include: { member: true },
+      });
+      const lowest = Math.min(...scores.map((score) => score.points - score.transferCost));
+      return pickOne(
+        scores.filter((score) => score.points - score.transferCost === lowest).map((score) => score.member),
+      );
+    }
+    return pickOne(await db.member.findMany({ where: candidates }));
+  }
+
+  /** Counts this person's roast today. False when they've used up their roasts. */
+  async function takeRoast(league: League, userId: number): Promise<boolean> {
+    const prefix = `roast:user${userId}:`;
+    const used = await db.messageLog.count({
+      where: {
+        leagueId: league.id,
+        kind: "roast",
+        dedupeKey: { startsWith: prefix },
+        sentAt: { gte: new Date(now().getTime() - DAY_MS) },
+      },
+    });
+    if (used >= ROASTS_PER_PERSON_PER_DAY) return false;
+    await db.messageLog.create({
+      data: { leagueId: league.id, dedupeKey: `${prefix}${now().getTime()}:${used}`, kind: "roast", sentAt: now() },
+    });
+    return true;
+  }
+
   composer.command("roast", async (ctx) => {
     const language = toLanguage(ctx.from?.language_code);
     if (ctx.chat.type === "private") return ctx.reply(t(language, "roast.groupOnly"));
-    const manager = await asManager(ctx, language);
-    if (!manager) return;
-    const { league } = manager;
+    const league = await groupLeague(ctx);
+    if (!league) return ctx.reply(t(language, "common.noLeague"));
 
-    const found = await targetMember(ctx, league, ctx.match.trim());
-    if (!found) return ctx.reply(t(language, "roast.usage"));
-    if (found.roastOptOut) return ctx.reply(t(language, "roast.optedOut"));
+    // A reply to the bot itself, or to no one, isn't naming anybody.
+    const repliedTo = ctx.message?.reply_to_message?.from;
+    const argument = ctx.match.trim();
+    const named = argument !== "" || (repliedTo !== undefined && !repliedTo.is_bot);
+    let target: Member | null;
+    if (named) {
+      target = await targetMember(ctx, league, argument);
+      if (!target) return ctx.reply(t(language, "roast.usage"));
+      if (target.roastOptOut) return ctx.reply(t(language, "roast.optedOut"));
+    } else {
+      target = await roastVictim(league);
+      if (!target) return ctx.reply(t(language, "roast.nobody"));
+    }
 
-    const member = await db.member.findUniqueOrThrow({ where: { id: found.id }, include: { facts: true } });
+    const actor = await ensureUser(db, ctx.from!);
+    if (!(await takeRoast(league, actor.id))) {
+      return ctx.reply(t(language, "roast.limit", { count: ROASTS_PER_PERSON_PER_DAY }));
+    }
+
+    const member = await db.member.findUniqueOrThrow({
+      where: { id: target.id },
+      include: { facts: true, user: true },
+    });
     const score = await db.score.findFirst({
       where: { memberId: member.id },
       include: { gameweek: true },
@@ -79,8 +144,11 @@ export function banterCommands(deps: BotDeps): Composer<Context> {
         }
       : null;
 
+    // Their Telegram @username goes first, so they're notified, rather than a name.
+    const name = mentionFor(member);
     const line = await aiLine(deps, league, roastPrompt(member, latest), now());
-    return ctx.reply(line ?? t(language, "roast.template", { name: member.fplManagerName }));
+    const text = line ? `${name} ${escapeHtml(line)}` : t(language, "roast.template", { name });
+    return ctx.reply(text, { parse_mode: "HTML" });
   });
 
   composer.command("nofun", async (ctx) => {

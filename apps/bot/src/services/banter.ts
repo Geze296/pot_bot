@@ -184,6 +184,7 @@ export function roastPrompt(
     latest
       ? `In gameweek ${latest.event} they scored ${latest.net} after hits, spent ${latest.hits} on hits, left ${latest.bench} on the bench, and their captain got ${latest.captainPoints ?? "an unknown number of"} points.`
       : "They have no scores in the bot yet, so joke about the wait.",
+    "Talk to them as you. Their Telegram @username is put in front of your message, so don't start with their name.",
     member.facts.length > 0 ? `Things the group knows: ${member.facts.map((item) => item.fact).join("; ")}` : "",
   ]
     .filter(Boolean)

@@ -167,7 +167,7 @@ The group chat is for showing off and roasting; private chat is for payments and
 | `/owe` | Private | Whether you owe anything, with the coordinator's Telebirr number |
 | `/awards` | Group | Last gameweek's awards again |
 | `/predict` | Group | Opens the "who wins this gameweek?" poll |
-| `/roast @name` | Group, admin only | AI roast of a member, in persona |
+| `/roast [@name]` | Group, anyone | AI roast of a member, in persona, mentioning their @username. With no name, last gameweek's lowest scorer. 3 a day per person |
 | `/say <text>` | Private, admin only | Bot posts your text to the group, optionally rewritten in persona |
 | `/nofun` | Private | Opt out of roasts (you can still play) |
 | `/help` | Both | List of commands |

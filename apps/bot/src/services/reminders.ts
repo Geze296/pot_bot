@@ -1,23 +1,11 @@
 import { currentReminderRound, potFromObligations, type ReminderRound } from "@potbot/core";
-import type { Gameweek, League, Member, PrismaClient, User } from "@potbot/db";
+import type { Gameweek, League, PrismaClient, User } from "@potbot/db";
 import { formatTimeLeft } from "../i18n/format.js";
 import { t, type Language, type MessageKey } from "../i18n/index.js";
 import { aiLine } from "./banter.js";
 import { claimMessage, releaseMessage } from "./message-log.js";
 import type { SettlementDeps } from "./settlement.js";
-
-const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-/**
- * Who to call out in a group message. Someone with no username is mentioned through a link to their account, which
- * notifies them just the same. A manager who hasn't claimed a team can only be named by team.
- */
-export function mentionFor(member: Member & { user: User | null }): string {
-  const { user } = member;
-  if (!user) return escapeHtml(member.fplTeamName);
-  if (user.username) return `@${user.username}`;
-  return `<a href="tg://user?id=${user.telegramId}">${escapeHtml(user.displayName)}</a>`;
-}
+import { escapeHtml, mentionFor } from "./users.js";
 
 const languageOf = (user: User): Language => (user.language === "am" ? "am" : "en");
 

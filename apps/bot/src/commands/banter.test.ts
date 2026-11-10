@@ -44,10 +44,10 @@ beforeEach(async () => {
 afterAll(() => db.$disconnect());
 
 describe("/roast", () => {
-  it("roasts in persona for the owner, using the target's real numbers", async () => {
+  it("roasts the person replied to in persona, using their real numbers", async () => {
     await harness.say(OWNER, GROUP_ID, "/roast", reply(ALICE));
 
-    expect(lastTo(GROUP_ID)).toBe("What a week!");
+    expect(lastTo(GROUP_ID)).toBe("@alice_fpl What a week!");
     expect(ai.calls[0]?.prompt).toContain("Yabets M");
     expect(ai.calls[0]?.system).toContain("You are an over-excited Ethiopian football commentator");
     expect(ai.calls[0]?.system).toContain("Never joke about religion");
@@ -65,18 +65,79 @@ describe("/roast", () => {
     ai.reply = undefined;
     await harness.say(OWNER, GROUP_ID, `/roast ${JAZZ}`);
 
-    expect(lastTo(GROUP_ID)).toContain("Yabets M, the data has spoken");
+    expect(lastTo(GROUP_ID)).toContain("@alice_fpl, the data has spoken");
   });
 
-  it("is for the owner and coordinator, in the group, with a target", async () => {
-    await harness.say(ALICE, GROUP_ID, `/roast ${KINGS}`);
-    expect(lastTo(GROUP_ID)).toContain("Only the league owner or coordinator");
+  it("can be sent by anyone in the group, and mentions the target by Telegram username", async () => {
+    await harness.say(BOB, GROUP_ID, "/roast@pot_test_bot @alice_fpl");
 
+    expect(lastTo(GROUP_ID)).toBe("@alice_fpl What a week!");
+    expect(ai.calls[0]?.prompt).toContain("Yabets M");
+  });
+
+  it("links to someone with no username, since a mention can't use one", async () => {
+    await harness.say(ALICE, GROUP_ID, "/roast", reply(BOB));
+
+    const sent = calls.filter((call) => call.method === "sendMessage").at(-1)?.payload;
+    expect(sent?.text).toBe(`<a href="tg://user?id=${BOB.id}">Bob</a> What a week!`);
+    expect(sent?.parse_mode).toBe("HTML");
+  });
+
+  it("with no name, roasts last gameweek's lowest score after hits", async () => {
+    const league = await db.league.findFirstOrThrow();
+    const gameweek = await db.gameweek.create({
+      data: {
+        leagueId: league.id,
+        fplEventId: 1,
+        deadlineAt: new Date("2026-08-15T10:00:00Z"),
+        paymentOpensAt: new Date("2026-08-08T10:00:00Z"),
+        paymentClosesAt: new Date("2026-08-15T10:00:00Z"),
+        status: "settled",
+      },
+    });
+    const score = async (entry: number, points: number, transferCost: number) =>
+      db.score.create({
+        data: { gameweekId: gameweek.id, memberId: (await memberOf(entry)).id, points, transferCost, benchPoints: 0 },
+      });
+    await score(JAZZ, 60, 0);
+    await score(KINGS, 50, 8); // 42 after hits, the lowest
+    await score(NAT_FC, 45, 0);
+
+    await harness.say(ALICE, GROUP_ID, "/roast");
+
+    expect(lastTo(GROUP_ID)).toMatch(/What a week!$/);
+    expect(ai.calls[0]?.prompt).toContain("scored 42 after hits");
+  });
+
+  it("with no name, never picks someone who sent /nofun", async () => {
+    await db.member.updateMany({ where: { fplEntryId: { not: KINGS } }, data: { roastOptOut: true } });
+
+    await harness.say(ALICE, GROUP_ID, "/roast");
+    expect(lastTo(GROUP_ID)).toMatch(/^<a href="tg:\/\/user\?id=102">Bob<\/a>/);
+
+    await db.member.updateMany({ data: { roastOptOut: true } });
+    await harness.say(ALICE, GROUP_ID, "/roast");
+    expect(lastTo(GROUP_ID)).toContain("no one I can roast");
+  });
+
+  it("allows each person 3 roasts a day", async () => {
+    for (let i = 0; i < 3; i++) await harness.say(ALICE, GROUP_ID, `/roast ${KINGS}`);
+    expect(ai.calls).toHaveLength(3);
+
+    await harness.say(ALICE, GROUP_ID, `/roast ${KINGS}`);
+    expect(lastTo(GROUP_ID)).toContain("That's your 3 roasts for today");
+    expect(ai.calls).toHaveLength(3);
+
+    await harness.say(BOB, GROUP_ID, `/roast ${JAZZ}`);
+    expect(ai.calls).toHaveLength(4);
+  });
+
+  it("only works in the group, and says so when it can't find the person", async () => {
     await harness.say(OWNER, OWNER.id, `/roast ${KINGS}`);
     expect(lastTo(OWNER.id)).toContain("belong in the group");
 
-    await harness.say(OWNER, GROUP_ID, "/roast");
-    expect(lastTo(GROUP_ID)).toContain("Reply to someone with /roast");
+    await harness.say(ALICE, GROUP_ID, "/roast @nobody_here");
+    expect(lastTo(GROUP_ID)).toContain("I couldn't find them");
     expect(ai.calls).toEqual([]);
   });
 });
@@ -201,7 +262,7 @@ describe("sharing the AI allowance", () => {
 
     await harness.say(OWNER, GROUP_ID, `/roast ${JAZZ}`);
     expect(ai.calls).toHaveLength(1);
-    expect(lastTo(GROUP_ID)).toBe("What a week!");
+    expect(lastTo(GROUP_ID)).toBe("@alice_fpl What a week!");
   });
 
   it("mention replies still count toward the league's total", async () => {
