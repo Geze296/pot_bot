@@ -3,7 +3,7 @@ import { DAILY_AI_CAP } from "../services/banter.js";
 import { ALICE, BOB, clearDatabase, createHarness, GROUP_ID, LEAGUE_ID, OWNER } from "../testing/harness.js";
 
 const harness = createHarness();
-const { db, ai, calls, posts, world } = harness;
+const { db, ai, calls, posts, world, dice } = harness;
 
 const JAZZ = 7789411;
 const KINGS = 4161001;
@@ -30,6 +30,7 @@ beforeEach(async () => {
   await clearDatabase(db);
   for (const key of Object.keys(world)) delete world[key as keyof typeof world];
   ai.reply = "What a week!";
+  dice.value = 0.99;
   await harness.say(OWNER, GROUP_ID, `/setup ${LEAGUE_ID}`);
   await harness.tap(OWNER, GROUP_ID, "setup:confirm");
   const { joinToken } = await db.league.findFirstOrThrow();
@@ -118,6 +119,31 @@ describe("/roast", () => {
     await db.member.updateMany({ data: { roastOptOut: true } });
     await harness.say(ALICE, GROUP_ID, "/roast");
     expect(lastTo(GROUP_ID)).toContain("no one I can roast");
+  });
+
+  it("now and then turns on the person who asked, dramatically", async () => {
+    dice.value = 0.1;
+    await harness.say({ ...ALICE, username: "alice_fpl" }, GROUP_ID, `/roast ${NAT_FC}`);
+
+    expect(lastTo(GROUP_ID)).toBe("@alice_fpl What a week!");
+    expect(ai.calls[0]?.prompt).toContain("Write a short roast of Yabets M");
+    expect(ai.calls[0]?.prompt).toContain("they asked you to roast Natnael Tessema, but you turn on them instead");
+
+    ai.reply = undefined;
+    await harness.say({ ...ALICE, username: "alice_fpl" }, GROUP_ID, `/roast ${NAT_FC}`);
+    expect(lastTo(GROUP_ID)).toContain("@alice_fpl, you wanted a roast? Plot twist.");
+  });
+
+  it("doesn't turn on someone with no team, or who sent /nofun", async () => {
+    dice.value = 0.1;
+    await harness.say(OWNER, GROUP_ID, `/roast ${JAZZ}`);
+    expect(ai.calls.at(-1)?.prompt).toContain("Write a short roast of Yabets M");
+    expect(ai.calls.at(-1)?.prompt).not.toContain("Plot twist");
+
+    await db.member.update({ where: { id: (await memberOf(JAZZ)).id }, data: { roastOptOut: true } });
+    await harness.say(ALICE, GROUP_ID, `/roast ${NAT_FC}`);
+    expect(ai.calls.at(-1)?.prompt).toContain("Write a short roast of Natnael Tessema");
+    expect(ai.calls.at(-1)?.prompt).not.toContain("Plot twist");
   });
 
   it("only works in the group, and says so when it can't find the person", async () => {

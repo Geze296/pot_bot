@@ -169,6 +169,8 @@ export function createHarness(
   };
   const reader = { reading: undefined as ScreenshotReading | undefined, fails: false, calls: 0 };
   const clock = { now: new Date("2026-11-05T12:00:00Z") };
+  /** What the bot's dice roll. Near 1, so nothing left to chance happens unless a test asks. */
+  const dice = { value: 0.99 };
   const bot = createBot(
     "test-token",
     {
@@ -182,6 +184,7 @@ export function createHarness(
       downloadFile: async () => ({ bytes: new Uint8Array([1]), mimeType: "image/jpeg" }),
       generateText,
       now: () => clock.now,
+      random: () => dice.value,
     },
     { botInfo },
   );
@@ -251,6 +254,7 @@ export function createHarness(
     ai,
     reader,
     clock,
+    dice,
     blockedChats,
     groupMembership,
     /** A photo message. Put "@pot_test_bot" in the caption to mention the bot. */

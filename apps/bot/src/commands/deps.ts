@@ -11,6 +11,8 @@ export interface BotDeps {
   generateText?: TextGenerator;
   downloadFile?: (fileId: string) => Promise<ScreenshotImage>;
   now?: () => Date;
+  /** A number from 0 up to 1, like Math.random. Tests set it so chance is predictable. */
+  random?: () => number;
   /** The Mini App's HTTPS address. Missing locally, because Telegram requires HTTPS. */
   webAppUrl?: string;
 }

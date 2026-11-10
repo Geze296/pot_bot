@@ -7,12 +7,15 @@ import { SETUP_STATE } from "../services/league-setup.js";
 import { displayName, ensureUser, escapeHtml, mentionFor } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
 
-const pickOne = <T>(items: T[]): T | null => items[Math.floor(Math.random() * items.length)] ?? null;
+/** How often a roast turns on the person who asked for it, for drama. */
+export const BACKFIRE_CHANCE = 0.2;
 
 export function banterCommands(deps: BotDeps): Composer<Context> {
   const { db } = deps;
   const composer = new Composer<Context>();
   const now = () => deps.now?.() ?? new Date();
+  const random = () => deps.random?.() ?? Math.random();
+  const pickOne = <T>(items: T[]): T | null => items[Math.floor(random() * items.length)] ?? null;
 
   const groupLeague = async (ctx: Context) => {
     const league = await db.league.findUnique({ where: { telegramChatId: BigInt(ctx.chat!.id) } });
@@ -98,6 +101,14 @@ export function banterCommands(deps: BotDeps): Composer<Context> {
       if (!target) return ctx.reply(t(language, "roast.nobody"));
     }
 
+    // Now and then the bot turns on whoever asked. Only someone who has a team and hasn't sent /nofun.
+    const asker = await db.member.findFirst({
+      where: { leagueId: league.id, status: "active", roastOptOut: false, user: { telegramId: BigInt(ctx.from!.id) } },
+    });
+    const requested = target;
+    const backfire = asker !== null && asker.id !== target.id && random() < BACKFIRE_CHANCE;
+    if (backfire) target = asker;
+
     const member = await db.member.findUniqueOrThrow({
       where: { id: target.id },
       include: { facts: true, user: true },
@@ -119,8 +130,11 @@ export function banterCommands(deps: BotDeps): Composer<Context> {
 
     // Their Telegram @username goes first, so they're notified, rather than a name.
     const name = mentionFor(member);
-    const line = await aiLine(deps, league, roastPrompt(member, latest), now());
-    const text = line ? `${name} ${escapeHtml(line)}` : t(language, "roast.template", { name });
+    const prompt = roastPrompt(member, latest, backfire ? requested.fplManagerName : undefined);
+    const line = await aiLine(deps, league, prompt, now());
+    const text = line
+      ? `${name} ${escapeHtml(line)}`
+      : t(language, backfire ? "roast.backfireTemplate" : "roast.template", { name });
     return ctx.reply(text, { parse_mode: "HTML" });
   });
 
