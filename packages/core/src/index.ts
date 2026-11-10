@@ -3,6 +3,7 @@ export * from "./awards.js";
 export * from "./ledger.js";
 export * from "./member-diff.js";
 export * from "./obligations.js";
+export * from "./predictions.js";
 export * from "./ranking.js";
 export * from "./reminders.js";
 export * from "./rules.js";

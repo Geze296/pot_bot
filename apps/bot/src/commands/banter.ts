@@ -3,6 +3,7 @@ import { Composer, InlineKeyboard, type Context } from "grammy";
 import { t, toLanguage, type Language } from "../i18n/index.js";
 import { aiLine, mentionPrompt, personaSettings, PERSONAS, roastPrompt, type PersonaName } from "../services/banter.js";
 import { leagueLedger } from "../services/ledger.js";
+import { leaguePredictions } from "../services/predictions.js";
 import { SETUP_STATE } from "../services/league-setup.js";
 import { displayName, ensureUser, escapeHtml, mentionFor } from "../services/users.js";
 import type { BotDeps } from "./deps.js";
@@ -247,6 +248,9 @@ export function banterCommands(deps: BotDeps): Composer<Context> {
           net: row?.net ?? 0,
         }),
       );
+      const predictions = (await leaguePredictions(db, member.leagueId)).find((row) => row.memberId === member.id);
+      if (predictions)
+        lines.push(t(language, "me.predictions", { right: predictions.right, predicted: predictions.predicted }));
       if (member.roastOptOut) lines.push(t(language, "me.optedOut"));
     }
     lines.push("");

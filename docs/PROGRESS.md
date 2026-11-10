@@ -45,6 +45,10 @@
 - [x] A2: season ledger per member and per gameweek. Managers get the CSV in their private chat. Tested against payments and payouts, including ties, free passes and credits
 - [x] A3: audit log screen for managers, showing who, what and when, with names instead of IDs
 
+## P2 requirements
+
+- [x] F4: "Who wins this gameweek?" poll. Posted in the group 24 hours before the deadline (or early with `/predict`), closed at the deadline, and only votes from claimed teams count. The results post says who called it, and `/me` and the Mini App's Ledger show season accuracy, worked out from the current result so overrides count. Not yet tried in real Telegram
+
 ## Added at the owner's request
 
 - [x] `/help`, in the group and in private, explaining what to do and the member commands. `/admin` lists the owner's and coordinator's commands, and only they can see it

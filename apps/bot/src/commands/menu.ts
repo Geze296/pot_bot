@@ -6,7 +6,7 @@ const entries = (names: string[]) =>
   names.map((command) => ({ command, description: t("en", `menu.${command}` as MessageKey) }));
 
 const PRIVATE = ["app", "status", "owe", "me", "table", "awards", "nofun", "help"];
-const GROUP = ["status", "table", "awards", "roast", "app", "help"];
+const GROUP = ["status", "table", "predict", "awards", "roast", "app", "help"];
 const MANAGERS = ["admin", "payout", "markpaid", "override"];
 
 /** Fills Telegram's "/" menu. Group admins also see the manager commands. A failure doesn't stop startup. */

@@ -46,6 +46,21 @@ function HallOfFame({ stats }: { stats: Ledger["stats"] }) {
   );
 }
 
+/** Season "who wins?" poll accuracy, best first. Only shown once someone has voted. */
+function Predictors({ rows }: { rows: Ledger["predictions"] }) {
+  if (rows.length === 0) return null;
+  return (
+    <Card title={text("web.fame.predictors")}>
+      {rows.map((row) => (
+        <div className="item row" key={row.memberId}>
+          <span className="strong">{row.manager}</span>
+          <span className="num">{text("web.fame.predictorLine", { right: row.right, predicted: row.predicted })}</span>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
 export function LedgerScreen({ leagueId }: { leagueId: number }) {
   const { data, error, reload } = useLoad<Ledger>(`/leagues/${leagueId}/ledger`);
   const action = useAction(reload);
@@ -55,6 +70,7 @@ export function LedgerScreen({ leagueId }: { leagueId: number }) {
     <>
       <ActionNotices error={action.error} done={action.done} />
       <HallOfFame stats={data.stats} />
+      <Predictors rows={data.predictions} />
       <Card title={text("web.ledger.title")}>
         <p className="muted">{text("web.ledger.note")}</p>
         {data.members.map((member) => {

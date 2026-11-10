@@ -606,6 +606,7 @@ describe("A2: the ledger", () => {
       members: [row, { ...row, team: "Red, White" }, { ...row, team: "+SUM(1)" }, { ...row, team: "@cmd" }],
       weeks: [],
       stats: [],
+      predictions: [],
     });
 
     expect(csv).toContain('"Abel ""The Man"""');

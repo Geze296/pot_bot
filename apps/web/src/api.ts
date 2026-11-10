@@ -140,6 +140,8 @@ export interface Ledger {
     biggestWin: number;
     longestWinless: number;
   }[];
+  /** "Who wins?" poll accuracy, best first. */
+  predictions: { memberId: number; manager: string; predicted: number; right: number }[];
 }
 
 export interface Members {

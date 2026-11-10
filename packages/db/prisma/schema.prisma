@@ -145,6 +145,8 @@ model Member {
   scores      Score[]
   facts       MemberFact[]
   payouts     Payout[]
+  predictions Prediction[] @relation("PredictionVoter")
+  pickedIn    Prediction[] @relation("PredictionPick")
 
   @@unique([leagueId, fplEntryId]) // a team belongs to one member row per league
   @@unique([leagueId, userId]) // a person claims one team per league; nulls stay distinct
@@ -163,14 +165,35 @@ model Gameweek {
   potAmount       Int            @default(0) @map("pot_amount")
   carryIn         Int            @default(0) @map("carry_in") // leftover birr rolled in from an uneven tie
   finalSeenAt     DateTime?      @map("final_seen_at") @db.Timestamptz(3) // starts the 1-hour grace period
+  pollId          String?        @unique @map("poll_id") // the "who wins?" poll, once posted (PRD F4)
+  pollMessageId   Int?           @map("poll_message_id")
+  pollOptions     Int[]          @default([]) @map("poll_options") // member IDs, in the poll's option order
+  pollClosedAt    DateTime?      @map("poll_closed_at") @db.Timestamptz(3)
 
   league      League       @relation(fields: [leagueId], references: [id])
   obligations Obligation[]
   scores      Score[]
   result      Result?
+  predictions Prediction[]
 
   @@unique([leagueId, fplEventId])
   @@map("gameweeks")
+}
+
+/** A vote in the "who wins?" poll, for bragging rights only. Only members who claimed a team are stored. */
+model Prediction {
+  id             Int      @id @default(autoincrement())
+  gameweekId     Int      @map("gameweek_id")
+  memberId       Int      @map("member_id") // who voted
+  pickedMemberId Int      @map("picked_member_id")
+  votedAt        DateTime @map("voted_at") @db.Timestamptz(3)
+
+  gameweek Gameweek @relation(fields: [gameweekId], references: [id])
+  member   Member   @relation("PredictionVoter", fields: [memberId], references: [id])
+  picked   Member   @relation("PredictionPick", fields: [pickedMemberId], references: [id])
+
+  @@unique([gameweekId, memberId]) // one vote each, changed in place
+  @@map("predictions")
 }
 
 model Obligation {

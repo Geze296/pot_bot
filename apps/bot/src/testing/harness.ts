@@ -5,6 +5,7 @@ import { createFplClient, type FplEntryHistory } from "@potbot/fpl";
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createBot } from "../bot.js";
 import { syncAllLeagues } from "../services/league-sync.js";
+import { telegramPolls } from "../services/predictions.js";
 import { tickAllLeagues, type SendOptions } from "../services/settlement.js";
 import { TEST_DATABASE_URL, TEST_SCHEMA } from "./database-url.js";
 
@@ -210,6 +211,10 @@ export function createHarness(
       return { ok: true, result: { status, ...groupMembership.extra } } as never;
     }
     if (method === "sendMessage") return { ok: true, result: { message_id: ++updateId } } as never;
+    if (method === "sendPoll") {
+      const messageId = ++updateId;
+      return { ok: true, result: { message_id: messageId, poll: { id: `poll-${messageId}` } } } as never;
+    }
     return { ok: true, result: true } as never;
   });
 
@@ -278,7 +283,13 @@ export function createHarness(
         },
       } as Update);
     },
-    tick: (now: Date) => tickAllLeagues({ db, fpl, send, generateText }, now),
+    tick: (now: Date) => tickAllLeagues({ db, fpl, send, generateText, polls: telegramPolls(bot.api) }, now),
+    /** A vote in a "who wins?" poll. No options means the vote was taken back. */
+    vote: (from: Person, pollId: string, optionIds: number[]) =>
+      bot.handleUpdate({
+        update_id: ++updateId,
+        poll_answer: { poll_id: pollId, user: { is_bot: false, ...from }, option_ids: optionIds },
+      } as Update),
     sync: () => syncAllLeagues({ db, fpl, send, botUsername: botInfo.username }),
     /** Text of every message and edit sent since the last call. */
     takeTexts(): string[] {
@@ -328,6 +339,7 @@ export function createHarness(
 const TABLES = [
   "audit_log",
   "messages_log",
+  "predictions",
   "member_facts",
   "payout_requests",
   "payouts",

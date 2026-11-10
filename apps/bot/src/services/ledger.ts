@@ -1,7 +1,8 @@
-import { memberLedger, seasonStats, type MemberSeasonStats } from "@potbot/core";
+import { memberLedger, seasonStats, type MemberSeasonStats, type PredictionStats } from "@potbot/core";
 import type { PrismaClient } from "@potbot/db";
 import { t } from "../i18n/index.js";
 import type { Share } from "./payouts.js";
+import { leaguePredictions } from "./predictions.js";
 
 export interface LedgerMemberRow {
   memberId: number;
@@ -30,6 +31,8 @@ export interface Ledger {
   members: LedgerMemberRow[];
   weeks: LedgerWeekRow[];
   stats: (MemberSeasonStats & { manager: string })[];
+  /** "Who wins?" poll accuracy, best first. */
+  predictions: (PredictionStats & { manager: string })[];
 }
 
 /** Every birr in and out, per member and per gameweek. It's worked out from the records, so it can't drift. */
@@ -108,7 +111,12 @@ export async function leagueLedger(db: PrismaClient, leagueId: number): Promise<
     ),
   ).map((row) => ({ ...row, manager: memberOf(row.memberId)?.fplManagerName ?? "" }));
 
-  return { members: memberRows, weeks, stats };
+  const predictions = (await leaguePredictions(db, leagueId)).map((row) => ({
+    ...row,
+    manager: memberOf(row.memberId)?.fplManagerName ?? "",
+  }));
+
+  return { members: memberRows, weeks, stats, predictions };
 }
 
 /** Quotes what needs it. A leading =, +, - or @ is defused, so a team name can't run as a spreadsheet formula. */

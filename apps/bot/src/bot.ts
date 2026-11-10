@@ -8,6 +8,7 @@ import { joinCommands } from "./commands/join.js";
 import { linkCommands } from "./commands/link.js";
 import { overrideCommands } from "./commands/override.js";
 import { paymentCommands } from "./commands/payments.js";
+import { predictionCommands } from "./commands/predictions.js";
 import { payoutCommands } from "./commands/payouts.js";
 import { rulesCommands } from "./commands/rules.js";
 import { setupCommands } from "./commands/setup.js";
@@ -38,6 +39,7 @@ export function createBot(token: string, deps: BotDeps, config?: BotConfig<Conte
   app.use(payoutCommands(deps));
   app.use(rulesCommands(deps));
   app.use(statusCommands(deps));
+  app.use(predictionCommands(deps));
 
   app.command("help", (ctx) =>
     ctx.reply(t(toLanguage(ctx.from?.language_code), "help.text", { bot: `@${ctx.me.username}` })),

@@ -21,6 +21,7 @@ import { postPendingAwards } from "./awards.js";
 import { applyCollectorFee, collectorOf, COLLECTOR_FEE, syncCollectorPayout } from "./collector.js";
 import { postPendingRecaps } from "./banter.js";
 import { claimMessage, releaseMessage } from "./message-log.js";
+import { closeDuePolls, postDuePolls, predictionLine, type PollApi } from "./predictions.js";
 import { sendPayoutCard } from "./payouts.js";
 import { postDeadlineMessages, sendReminders } from "./reminders.js";
 import { isUniqueViolation } from "./users.js";
@@ -36,6 +37,8 @@ export interface SettlementDeps {
   db: PrismaClient;
   fpl: FplClient;
   send: (chatId: bigint, text: string, options?: SendOptions) => Promise<unknown>;
+  /** The "who wins?" poll. Missing where polls aren't wanted, such as a one-off script. */
+  polls?: PollApi;
 }
 
 type Tx = Prisma.TransactionClient;
@@ -346,6 +349,8 @@ async function postPendingResults({ db, send }: SettlementDeps, league: League):
       t("en", "settle.header", { gw: gameweek.fplEventId }),
       ...resultLines(gameweek, gameweek.potAmount, outcome, members, (await collectorOf(db, league))?.id),
     ];
+    const predictions = await predictionLine(db, gameweek);
+    if (predictions) lines.push("", predictions);
     try {
       await send(league.telegramChatId, lines.join("\n"));
     } catch (error) {
@@ -410,6 +415,15 @@ export async function tickLeague(deps: SettlementDeps, leagueId: number, now: Da
     await sendReminders(deps, league, now);
   } catch (error) {
     console.error(`League ${leagueId} couldn't post reminders:`, error);
+  }
+  // The poll is for fun, so it gets its own try: it can't hold up reminders or settling.
+  if (deps.polls) {
+    try {
+      await closeDuePolls(db, deps.polls, league);
+      await postDuePolls(db, deps.polls, league, now);
+    } catch (error) {
+      console.error(`League ${leagueId} couldn't post the poll:`, error);
+    }
   }
 
   // Settling goes in order, because each result decides the next gameweek's free pass.

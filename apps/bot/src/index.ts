@@ -12,6 +12,7 @@ import { syncCommands } from "./commands/menu.js";
 import { loadConfig } from "./config.js";
 import { startJobs } from "./jobs/boss.js";
 import { syncAllLeagues } from "./services/league-sync.js";
+import { telegramPolls } from "./services/predictions.js";
 import { tickAllLeagues, type SendOptions } from "./services/settlement.js";
 import { downloadTelegramFile } from "./services/telegram-files.js";
 
@@ -45,7 +46,7 @@ async function main(): Promise<void> {
   const boss = await startJobs(
     config.databaseUrl,
     {
-      tick: () => tickAllLeagues({ db, fpl, send, ...ai }, new Date()),
+      tick: () => tickAllLeagues({ db, fpl, send, polls: telegramPolls(bot.api), ...ai }, new Date()),
       sync: () => syncAllLeagues({ db, fpl, send, botUsername: bot.botInfo.username }),
     },
     dbOptions,
