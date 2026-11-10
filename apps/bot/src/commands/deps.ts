@@ -1,7 +1,6 @@
 import type { ScreenshotImage, ScreenshotReader, TextGenerator } from "@potbot/ai";
 import type { PrismaClient } from "@potbot/db";
 import type { FplClient } from "@potbot/fpl";
-import type { ScheduleDeletion } from "./auto-delete.js";
 
 export interface BotDeps {
   db: PrismaClient;
@@ -14,6 +13,4 @@ export interface BotDeps {
   now?: () => Date;
   /** The Mini App's HTTPS address. Missing locally, because Telegram requires HTTPS. */
   webAppUrl?: string;
-  /** Deletes a group reply later. Without it, replies simply stay. */
-  scheduleDeletion?: ScheduleDeletion;
 }

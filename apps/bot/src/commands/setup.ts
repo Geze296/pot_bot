@@ -89,7 +89,6 @@ export function setupCommands({ db, fpl }: BotDeps): Composer<Context> {
         }),
       )
       .join("\n");
-    // Sent directly so it stays: unlike other replies, these are needed for longer than 10 minutes.
     return ctx.api.sendMessage(
       ctx.chat.id,
       t(language, "setup.preview", { name: standings.league.name, count: standings.managers.length, managers }),

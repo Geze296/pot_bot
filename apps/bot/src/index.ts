@@ -10,7 +10,7 @@ import { createBot } from "./bot.js";
 import { syncMenuButton } from "./commands/app.js";
 import { syncCommands } from "./commands/menu.js";
 import { loadConfig } from "./config.js";
-import { scheduleMessageDeletion, startJobs } from "./jobs/boss.js";
+import { startJobs } from "./jobs/boss.js";
 import { syncAllLeagues } from "./services/league-sync.js";
 import { tickAllLeagues, type SendOptions } from "./services/settlement.js";
 import { downloadTelegramFile } from "./services/telegram-files.js";
@@ -37,7 +37,6 @@ async function main(): Promise<void> {
     ...ai,
     downloadFile: (fileId) => downloadTelegramFile(bot.api, config.botToken, fileId),
     ...(config.publicUrl ? { webAppUrl: config.publicUrl } : {}),
-    scheduleDeletion: (chatId, messageId) => scheduleMessageDeletion(boss, chatId, messageId),
   });
   const send = (chatId: bigint, text: string, options?: SendOptions) =>
     bot.api.sendMessage(Number(chatId), text, options);
@@ -48,7 +47,6 @@ async function main(): Promise<void> {
     {
       tick: () => tickAllLeagues({ db, fpl, send, ...ai }, new Date()),
       sync: () => syncAllLeagues({ db, fpl, send, botUsername: bot.botInfo.username }),
-      deleteMessage: (chatId, messageId) => bot.api.deleteMessage(chatId, messageId),
     },
     dbOptions,
   );

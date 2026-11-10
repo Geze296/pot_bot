@@ -3,7 +3,7 @@ import { DAILY_AI_CAP } from "../services/banter.js";
 import { ALICE, BOB, clearDatabase, createHarness, GROUP_ID, LEAGUE_ID, OWNER } from "../testing/harness.js";
 
 const harness = createHarness();
-const { db, ai, calls, deletions, posts, world } = harness;
+const { db, ai, calls, posts, world } = harness;
 
 const JAZZ = 7789411;
 const KINGS = 4161001;
@@ -39,20 +39,18 @@ beforeEach(async () => {
   await harness.tap(BOB, BOB.id, `claim:${(await memberOf(KINGS)).id}`);
   calls.length = 0;
   posts.length = 0;
-  deletions.length = 0;
   ai.calls.length = 0;
 });
 afterAll(() => db.$disconnect());
 
 describe("/roast", () => {
-  it("roasts in persona for the owner, using the target's real numbers, and cleans up later", async () => {
+  it("roasts in persona for the owner, using the target's real numbers", async () => {
     await harness.say(OWNER, GROUP_ID, "/roast", reply(ALICE));
 
     expect(lastTo(GROUP_ID)).toBe("What a week!");
     expect(ai.calls[0]?.prompt).toContain("Yabets M");
     expect(ai.calls[0]?.system).toContain("You are an over-excited Ethiopian football commentator");
     expect(ai.calls[0]?.system).toContain("Never joke about religion");
-    expect(deletions).toHaveLength(1);
   });
 
   it("finds someone by @username or team ID", async () => {
@@ -129,7 +127,7 @@ describe("/nofun", () => {
 });
 
 describe("replies when mentioned", () => {
-  it("answers a mention, and a reply to the bot, then cleans up later", async () => {
+  it("answers a mention, and a reply to the bot", async () => {
     await harness.say(BOB, GROUP_ID, `who's winning ${BOT_MENTION}?`, mention(`who's winning ${BOT_MENTION}?`));
     expect(lastTo(GROUP_ID)).toBe("What a week!");
     expect(ai.calls[0]?.prompt).toContain("who's winning");
@@ -143,7 +141,6 @@ describe("replies when mentioned", () => {
       },
     });
     expect(ai.calls).toHaveLength(2);
-    expect(deletions).toHaveLength(2);
   });
 
   it("ignores ordinary chat and someone else's mention", async () => {

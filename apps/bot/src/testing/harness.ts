@@ -169,8 +169,6 @@ export function createHarness(
   };
   const reader = { reading: undefined as ScreenshotReading | undefined, fails: false, calls: 0 };
   const clock = { now: new Date("2026-11-05T12:00:00Z") };
-  const deletions: { chatId: number; messageId: number }[] = [];
-  const deletionsFail = { value: false };
   const bot = createBot(
     "test-token",
     {
@@ -184,10 +182,6 @@ export function createHarness(
       downloadFile: async () => ({ bytes: new Uint8Array([1]), mimeType: "image/jpeg" }),
       generateText,
       now: () => clock.now,
-      scheduleDeletion: async (chatId, messageId) => {
-        if (deletionsFail.value) throw new Error("The queue is down");
-        deletions.push({ chatId, messageId });
-      },
     },
     { botInfo },
   );
@@ -254,8 +248,6 @@ export function createHarness(
     world,
     posts,
     telegram,
-    deletions,
-    deletionsFail,
     ai,
     reader,
     clock,

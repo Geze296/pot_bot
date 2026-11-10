@@ -144,7 +144,7 @@ export function paymentCommands(deps: BotDeps): Composer<Context> {
           await sendImage(ctx.api, Number(league.telegramChatId), image, { caption: announcement });
           return ctx.reply(t(language, "payments.paidPrivate", { gw: result.gameweek }));
         }
-        // Sent directly so it stays: the group keeps the record of who paid.
+        // Sent to the group directly, which keeps the record of who paid.
         return ctx.api.sendMessage(ctx.chat!.id, announcement);
       }
     }

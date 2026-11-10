@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ALICE, clearDatabase, createHarness, GROUP_ID, LEAGUE_ID, OWNER } from "../testing/harness.js";
 
 const harness = createHarness();
-const { db, world, posts, calls, deletions, blockedChats } = harness;
+const { db, world, posts, calls, blockedChats } = harness;
 
 const KIBROM = { id: 200, first_name: "Kibrom", language_code: "en" };
 const JAZZ = 7789411;
@@ -51,7 +51,6 @@ beforeEach(async () => {
   for (const key of Object.keys(world)) delete world[key as keyof typeof world];
   posts.length = 0;
   calls.length = 0;
-  deletions.length = 0;
   blockedChats.clear();
   harness.clock.now = AFTER_MATCHES;
 
@@ -61,7 +60,6 @@ beforeEach(async () => {
   await harness.tick(new Date("2026-11-01T12:00:00Z"));
   posts.length = 0;
   calls.length = 0;
-  deletions.length = 0;
 });
 afterAll(() => db.$disconnect());
 
@@ -126,7 +124,6 @@ describe("tapping Paid", () => {
     const payout = await db.payout.findFirstOrThrow();
     expect(payout).toMatchObject({ memberId: jazz.id, amount: 1000, txnId: null });
     expect(groupTexts()).toContain("Pot delivered: Yabets M received 1000 birr for GW10.");
-    expect(deletions).toEqual([]);
     expect(await db.auditLog.count({ where: { action: "payout.record", entityId: payout.id } })).toBe(1);
     expect((await db.result.findFirstOrThrow()).paidOutAt).toEqual(AFTER_MATCHES);
     expect(edits().at(-1)).toContain("every payout is recorded");
@@ -307,15 +304,13 @@ describe("/payout, then a screenshot", () => {
     expect(await db.payoutRequest.count()).toBe(0);
   });
 
-  it("in the group: no mention needed, and the announcement stays", async () => {
+  it("in the group: no mention needed", async () => {
     await settleGw10({ [JAZZ]: { points: 90 } });
     await harness.say(KIBROM, GROUP_ID, "/payout");
-    deletions.length = 0;
     await harness.photo(KIBROM, GROUP_ID);
 
     expect(await db.payout.count()).toBe(1);
     expect(groupTexts().at(-1)).toContain("Pot delivered: Yabets M");
-    expect(deletions).toEqual([]);
   });
 
   it("with tied winners, asks who first, then the next /payout offers only the other", async () => {

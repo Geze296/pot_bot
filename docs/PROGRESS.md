@@ -48,7 +48,7 @@
 ## Added at the owner's request
 
 - [x] `/help`, in the group and in private, explaining what to do and the member commands. `/admin` lists the owner's and coordinator's commands, and only they can see it
-- [x] The bot's replies in a group are deleted after 10 minutes. Results, reminders, the deadline list, "X paid", corrected results, claim announcements, setup messages and review cards stay (Claude's reading of the request, not yet confirmed by the owner)
+- [ ] The bot's replies in a group were deleted after 10 minutes. Removed at the owner's request: messages now stay
 
 - [x] Telegram's `/` menu lists the commands, with the manager ones for group admins. `/owe` says what you owe and who to send it to
 

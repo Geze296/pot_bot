@@ -1,7 +1,6 @@
 import { Bot, type BotConfig, type Context } from "grammy";
 import { adminCommands } from "./commands/admin.js";
 import { appCommands } from "./commands/app.js";
-import { autoDeleteReplies } from "./commands/auto-delete.js";
 import { banterCommands } from "./commands/banter.js";
 import type { BotDeps } from "./commands/deps.js";
 import { groupMigration } from "./commands/group-migration.js";
@@ -28,8 +27,6 @@ export function createBot(token: string, deps: BotDeps, config?: BotConfig<Conte
       // Telegram itself may be the problem, and there's no one else to tell.
     }
   });
-
-  app.use(autoDeleteReplies(deps.scheduleDeletion));
 
   app.use(groupMigration(deps));
   app.use(joinCommands(deps));

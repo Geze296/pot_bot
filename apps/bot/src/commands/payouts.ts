@@ -19,7 +19,7 @@ export function payoutCommands(deps: BotDeps): Composer<Context> {
   const canManage = (league: League, actorId: number) =>
     actorId === league.ownerUserId || actorId === league.coordinatorUserId;
 
-  /** Sent directly so it stays: the group keeps the record of the pot being delivered. */
+  /** The group keeps the record of the pot being delivered. */
   const announce = (ctx: Context, league: League, result: Extract<PayoutResult, { kind: "done" }>, gw: number) =>
     ctx.api.sendMessage(
       Number(league.telegramChatId),
@@ -182,7 +182,7 @@ export function payoutCommands(deps: BotDeps): Composer<Context> {
     const caption = decision.receiver
       ? `${delivered}\n${t("en", "payout.telebirrShows", { name: decision.receiver })}`
       : delivered;
-    // Sent directly so it stays. The group sees the proof too, whichever chat it arrived in.
+    // The group sees the proof, whichever chat it arrived in.
     if (ctx.chat.type === "private") {
       await sendImage(ctx.api, Number(league.telegramChatId), image, { caption });
       return ctx.reply(t(language, "payout.recorded", { name: result.member.fplManagerName, gw }));
